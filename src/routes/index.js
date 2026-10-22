@@ -44,6 +44,8 @@ router.get('/', (req, res) => {
         refreshToken: '/api/refresh-token (or /api/auth/refresh-token)',
         me: '/api/me (or /api/auth/me)',
         logout: '/api/logout (or /api/auth/logout)',
+        forgotPassword: '/api/forgot-password (or /api/auth/forgot-password)',
+        resetPassword: '/api/reset-password (or /api/auth/reset-password)',
       },
 
 

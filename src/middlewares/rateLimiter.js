@@ -8,7 +8,6 @@ export const globalRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    statusCode: 429,
     message: 'Too many requests created from this IP, please try again after 15 minutes',
   },
 });
@@ -20,7 +19,6 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    statusCode: 429,
     message: 'Too many login attempts from this IP, please try again after 15 minutes',
   },
 });

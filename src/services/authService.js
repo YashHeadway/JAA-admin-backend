@@ -1,11 +1,13 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { User } from '../models/User.js';
 import { AdminUser } from '../models/AdminUser.js';
 import { ApiError } from '../utils/apiError.js';
 import { getNextSequence } from '../models/Counter.js';
-
+import { emailService } from './emailService.js';
 
 export class AuthService {
   /**
@@ -114,7 +116,10 @@ export class AuthService {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail });
+    let user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      user = await AdminUser.findOne({ email: normalizedEmail });
+    }
 
     if (!user) {
       throw ApiError.unauthorized('Invalid email or password');
@@ -275,6 +280,120 @@ export class AuthService {
       refreshToken: tokens.refreshToken,
       token: tokens.token,
       user: adminObj,
+    };
+  }
+
+  /**
+   * Request password reset token for given email.
+   */
+  static async forgotPassword(email) {
+    if (!email) {
+      throw ApiError.badRequest('Email is required');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check AdminUser collection first, then User collection
+    let account = await AdminUser.findOne({ email: normalizedEmail });
+    if (!account) {
+      account = await User.findOne({ email: normalizedEmail });
+    }
+
+    let resetToken = null;
+
+    if (account) {
+      resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour validity
+
+      account.resetPasswordToken = resetToken;
+      account.resetPasswordExpires = resetExpires;
+      await account.save({ validateBeforeSave: false });
+
+      logger.info(`[FORGOT PASSWORD] Reset token generated for ${normalizedEmail}: ${resetToken}`);
+      console.log(`\n======================================================`);
+      console.log(`[PASSWORD RESET TOKEN] Generated for: ${normalizedEmail}`);
+      console.log(`Token: ${resetToken}`);
+      console.log(`Expires: ${resetExpires.toISOString()}`);
+      console.log(`======================================================\n`);
+
+      // Dispatch password reset email via Nodemailer SMTP service
+      await emailService.sendPasswordResetEmail({
+        to: account.email,
+        name: account.name || 'User',
+        resetToken,
+      });
+    } else {
+      logger.info(`[FORGOT PASSWORD] Request for non-existent email: ${normalizedEmail}`);
+    }
+
+    return {
+      success: true,
+      message: 'If an account exists with this email, a password reset link will be sent.',
+      resetToken,
+    };
+  }
+
+  /**
+   * Reset password using token, newPassword and confirmPassword.
+   */
+  static async resetPassword({ token, newPassword, confirmPassword }) {
+    if (!newPassword || !confirmPassword || newPassword !== confirmPassword) {
+      throw ApiError.badRequest('New password and confirm password do not match.');
+    }
+
+    if (!token) {
+      throw ApiError.badRequest('Invalid or expired password reset token.');
+    }
+
+    const now = new Date();
+    const query = {
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: now },
+    };
+
+    let account = await AdminUser.findOne(query);
+    if (!account) {
+      account = await User.findOne(query);
+    }
+
+    if (!account) {
+      throw ApiError.badRequest('Invalid or expired password reset token.');
+    }
+
+    // Update password (pre-save hook will hash it with bcrypt)
+    account.password = newPassword;
+    account.resetPasswordToken = null;
+    account.resetPasswordExpires = null;
+    await account.save();
+
+    // If an account with the same email exists in the other collection, sync the password
+    try {
+      if (account.constructor.modelName === 'AdminUser') {
+        const regularUser = await User.findOne({ email: account.email });
+        if (regularUser) {
+          regularUser.password = newPassword;
+          regularUser.resetPasswordToken = null;
+          regularUser.resetPasswordExpires = null;
+          await regularUser.save();
+        }
+      } else {
+        const adminUser = await AdminUser.findOne({ email: account.email });
+        if (adminUser) {
+          adminUser.password = newPassword;
+          adminUser.resetPasswordToken = null;
+          adminUser.resetPasswordExpires = null;
+          await adminUser.save();
+        }
+      }
+    } catch (syncErr) {
+      logger.warn(`[PASSWORD RESET] Non-blocking sync warning: ${syncErr.message}`);
+    }
+
+    logger.info(`[PASSWORD RESET] Successfully updated password for ${account.email}`);
+
+    return {
+      success: true,
+      message: 'Password reset successfully.',
     };
   }
 }

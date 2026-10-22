@@ -27,4 +27,13 @@ export const env = {
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024,
   isDev: (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
+
+  // Email / SMTP settings
+  SMTP_HOST: process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT, 10) || 587,
+  SMTP_SECURE: (process.env.SMTP_SECURE || process.env.EMAIL_SECURE) === 'true',
+  SMTP_USER: process.env.SMTP_USER || process.env.EMAIL_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || process.env.EMAIL_PASS || '',
+  SMTP_FROM: process.env.SMTP_FROM || process.env.EMAIL_FROM || '',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
