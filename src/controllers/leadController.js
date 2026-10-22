@@ -1,0 +1,34 @@
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { LeadService } from '../services/leadService.js';
+
+export const getLeads = asyncHandler(async (req, res) => {
+  const { search, page, limit } = req.query;
+  const result = await LeadService.getLeads({ search, page, limit });
+
+  return res.status(200).json({
+    success: true,
+    data: result.data,
+    pagination: result.pagination,
+  });
+});
+
+export const getLeadById = asyncHandler(async (req, res) => {
+  const lead = await LeadService.getLeadById(req.params.id);
+  return res.status(200).json(lead);
+});
+
+export const createLead = asyncHandler(async (req, res) => {
+  const created = await LeadService.createLead(req.body);
+  return res.status(201).json(created);
+});
+
+export const deleteLead = asyncHandler(async (req, res) => {
+  const deleted = await LeadService.deleteLead(req.params.id);
+  return res.status(200).json(deleted);
+});
+
+export const importLeads = asyncHandler(async (req, res) => {
+  const { leads } = req.body;
+  const result = await LeadService.importLeads(leads);
+  return res.status(200).json(result);
+});
