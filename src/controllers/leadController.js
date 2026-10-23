@@ -2,8 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { LeadService } from '../services/leadService.js';
 
 export const getLeads = asyncHandler(async (req, res) => {
-  const { search, page, limit } = req.query;
-  const result = await LeadService.getLeads({ search, page, limit });
+  const { search, status, page, limit } = req.query;
+  const result = await LeadService.getLeads({ search, status, page, limit });
 
   return res.status(200).json({
     success: true,
@@ -20,6 +20,11 @@ export const getLeadById = asyncHandler(async (req, res) => {
 export const createLead = asyncHandler(async (req, res) => {
   const created = await LeadService.createLead(req.body);
   return res.status(201).json(created);
+});
+
+export const updateLead = asyncHandler(async (req, res) => {
+  const updated = await LeadService.updateLead(req.params.id, req.body);
+  return res.status(200).json(updated);
 });
 
 export const deleteLead = asyncHandler(async (req, res) => {

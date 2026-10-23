@@ -1,14 +1,25 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { getNextSequence } from './Counter.js';
+import { formatDateTime } from '../utils/dateFormatter.js';
 
 const adminUserSchema = new mongoose.Schema(
   {
     id: { type: Number, unique: true, index: true },
-    name: { type: String, default: 'Admin' },
+    fullName: { type: String, default: 'Harvey Specter' },
+    name: { type: String, default: 'Harvey Specter' },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     role: { type: String, default: 'Admin' },
+    dateOfBirth: { type: String, default: '2000-07-31' },
+    dob: { type: String, default: '2000-07-31' },
+    gender: { type: String, enum: ['Male', 'Female', 'Other'], default: 'Male' },
+    mobile: { type: String, default: '+91988774455' },
+    address: { type: String, default: 'The Exhibition Center, Science Road' },
+    city: { type: String, default: 'Ahmedabad' },
+    pincode: { type: String, default: '380009' },
+    profilePhoto: { type: String, default: 'https://example.com/uploads/profile.jpg' },
+    avatar: { type: String, default: 'https://example.com/uploads/profile.jpg' },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
   },
@@ -23,6 +34,8 @@ const adminUserSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -34,6 +47,8 @@ const adminUserSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -59,9 +74,10 @@ adminUserSchema.pre('save', async function () {
   }
 });
 
-// Compare password helper (supports bcrypt hash)
+// Compare password helper (supports bcrypt hash and direct match)
 adminUserSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password || !candidatePassword) return false;
+  if (candidatePassword === this.password) return true;
   if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
     return await bcrypt.compare(candidatePassword, this.password);
   }

@@ -26,11 +26,24 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
+    // Images (Photos)
     'image/jpeg',
     'image/png',
     'image/webp',
     'image/gif',
+    'image/svg+xml',
+    // Videos
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'video/x-msvideo',
+    'video/mpeg',
+    'video/ogg',
+    'video/3gpp',
+    'video/x-matroska',
+    // Documents / Notices
     'application/pdf',
+    // Spreadsheets / Data
     'text/csv',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -39,7 +52,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(ApiError.badRequest(`File type '${file.mimetype}' is not supported.`), false);
+    cb(ApiError.badRequest(`File type '${file.mimetype}' is not supported. Supported: images, videos (mp4, webm, mov), and notices (pdf).`), false);
   }
 };
 
@@ -53,17 +66,21 @@ export const upload = multer({
  * Middleware that seamlessly supports multipart/form-data (from Postman or file inputs)
  * as well as raw JSON payloads without throwing errors.
  *
- * @param {string} fieldName - Optional file field name (e.g., 'avatar', 'image')
+ * @param {string} fieldName - Optional file field name (e.g., 'media', 'avatar', 'image')
  */
-export const handleFormData = (fieldName = 'avatar') => {
-  const uploader = upload.single(fieldName);
+export const handleFormData = (fieldName = 'media') => {
   return (req, res, next) => {
     const contentType = req.headers['content-type'] || '';
     if (contentType.includes('multipart/form-data')) {
+      const uploader = upload.any();
       return uploader(req, res, (err) => {
         if (err) return next(err);
-        if (req.file) {
-          req.body[fieldName] = `/uploads/${req.file.filename}`;
+        if (req.files && req.files.length > 0) {
+          const matched = req.files.find((f) => f.fieldname === fieldName) || req.files[0];
+          req.body[matched.fieldname] = `/uploads/${matched.filename}`;
+          if (fieldName && matched.fieldname !== fieldName) {
+            req.body[fieldName] = `/uploads/${matched.filename}`;
+          }
         }
         next();
       });

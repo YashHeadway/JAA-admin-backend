@@ -3,12 +3,17 @@ import {
   getLeads,
   getLeadById,
   createLead,
+  updateLead,
   deleteLead,
   importLeads,
 } from '../controllers/leadController.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 import { handleFormData } from '../middlewares/uploadMiddleware.js';
-import { createLeadSchema, importLeadsSchema } from '../validations/leadValidation.js';
+import {
+  createLeadSchema,
+  updateLeadSchema,
+  importLeadsSchema,
+} from '../validations/leadValidation.js';
 
 const router = Router();
 
@@ -17,6 +22,8 @@ router.post('/import', validate(importLeadsSchema), importLeads);
 router.get('/', getLeads);
 router.get('/:id', getLeadById);
 router.post('/', handleFormData(), validate(createLeadSchema), createLead);
+router.patch('/:id', handleFormData(), validate(updateLeadSchema), updateLead);
+router.put('/:id', handleFormData(), validate(updateLeadSchema), updateLead);
 router.delete('/:id', deleteLead);
 
 export default router;

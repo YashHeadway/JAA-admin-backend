@@ -169,6 +169,7 @@ All business endpoints are grouped under `/api` (index number wise sequential ID
 |---|---|---|
 | `GET` | `/health` | Server health and storage mode status |
 | `POST` | `/api/auth/login` | Admin login with email & password |
+| `POST` | `/api/auth/change-password` | Change password (`{ currentPassword, newPassword, confirmNewPassword }`) |
 | `GET` | `/api/auth/me` | Current authenticated user profile |
 | `POST` | `/api/auth/logout` | Clear session cookie |
 | `GET` | `/api/members` | Get paginated members with search & status filters |

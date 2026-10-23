@@ -10,6 +10,7 @@ import complaintRoutes from './complaintRoutes.js';
 import postRoutes from './postRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
+import adminProfileRoutes from './adminProfileRoutes.js';
 
 const router = Router();
 
@@ -18,6 +19,8 @@ const router = Router();
 router.use('/auth', authRoutes);
 router.use('/', authRoutes);
 
+router.use('/admin-profile', adminProfileRoutes);
+router.use('/admin/profile', adminProfileRoutes);
 router.use('/members', memberRoutes);
 router.use('/committee', committeeRoutes);
 router.use('/events', eventRoutes);
@@ -46,9 +49,11 @@ router.get('/', (req, res) => {
         logout: '/api/logout (or /api/auth/logout)',
         forgotPassword: '/api/forgot-password (or /api/auth/forgot-password)',
         resetPassword: '/api/reset-password (or /api/auth/reset-password)',
+        changePassword: '/api/change-password (or /api/auth/change-password)',
+        adminProfile: '/api/admin-profile (or /api/auth/admin-profile)',
       },
 
-
+      adminProfile: '/api/admin-profile',
       members: '/api/members',
       committee: '/api/committee',
       events: '/api/events',

@@ -12,13 +12,17 @@ import { Complaint } from '../models/Complaint.js';
 import { Post } from '../models/Post.js';
 import { Counter } from '../models/Counter.js';
 
-// Apply global transform so no model leaks _id or __v in JSON responses
+import { formatDateTime } from '../utils/dateFormatter.js';
+
+// Apply global transform so no model leaks _id or __v in JSON responses, and formats timestamps
 mongoose.plugin((schema) => {
   schema.set('toJSON', {
     virtuals: false,
     transform: (doc, ret) => {
       delete ret._id;
       delete ret.__v;
+      if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+      if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
       return ret;
     },
   });
@@ -27,6 +31,8 @@ mongoose.plugin((schema) => {
     transform: (doc, ret) => {
       delete ret._id;
       delete ret.__v;
+      if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+      if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
       return ret;
     },
   });

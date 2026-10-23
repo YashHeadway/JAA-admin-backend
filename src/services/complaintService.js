@@ -28,7 +28,7 @@ export class ComplaintService {
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
 
     const [items, total] = await Promise.all([
-      Complaint.find(filter).sort({ id: 1 }).skip(skip).limit(parsedLimit),
+      Complaint.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Complaint.countDocuments(filter),
     ]);
 

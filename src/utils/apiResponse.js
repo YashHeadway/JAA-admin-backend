@@ -1,3 +1,5 @@
+import { formatTimestamps } from './dateFormatter.js';
+
 /**
  * Standardized API Response formatter.
  * Ensures consistent response envelopes across all endpoints.
@@ -7,7 +9,7 @@ export class ApiResponse {
     this.success = statusCode >= 200 && statusCode < 300;
     this.statusCode = statusCode;
     this.message = message;
-    this.data = data;
+    this.data = data && typeof data === 'object' ? formatTimestamps(data) : data;
     if (meta !== null && meta !== undefined) {
       this.meta = meta;
     }

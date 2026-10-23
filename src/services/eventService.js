@@ -25,7 +25,7 @@ export class EventService {
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
 
     const [items, total] = await Promise.all([
-      Event.find(filter).sort({ id: 1 }).skip(skip).limit(parsedLimit),
+      Event.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Event.countDocuments(filter),
     ]);
 
@@ -49,7 +49,7 @@ export class EventService {
     const id = await getNextSequence('events');
     const newEvent = await Event.create({
       id,
-      image: data.image || '/images/events/workshop.jpg',
+      image: data.image || '/uploads/events/workshop.jpg',
       isActive: data.isActive ?? true,
       ...data,
     });

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatDateTime } from '../utils/dateFormatter.js';
 
 const complaintSchema = new mongoose.Schema(
   {
@@ -26,6 +27,8 @@ const complaintSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -34,6 +37,8 @@ const complaintSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },

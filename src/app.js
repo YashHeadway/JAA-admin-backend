@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { env } from './config/env.js';
@@ -13,6 +14,7 @@ import { getDbStatus } from './config/db.js';
 import { globalRateLimiter } from './middlewares/rateLimiter.js';
 import { notFoundHandler } from './middlewares/notFoundMiddleware.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
+import { formatTimestamps } from './utils/dateFormatter.js';
 import v1Routes from './routes/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -77,13 +79,36 @@ app.use((req, res, next) => {
   next();
 });
 
+// Automatically format createdAt and updatedAt fields into 'DD-MM-YYYY hh:mm am/pm' across all API responses
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  res.json = function (body) {
+    if (body && typeof body === 'object') {
+      formatTimestamps(body);
+    }
+    return originalJson.call(this, body);
+  };
+  next();
+});
 
 // Cookie parser & Compression
 app.use(cookieParser());
 app.use(compression());
 
-// Static file serving for uploads
-app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR)));
+// Static file serving for uploads and images
+const uploadsDir = path.resolve(env.UPLOAD_DIR);
+app.use('/uploads', express.static(uploadsDir));
+app.use('/images', express.static(path.join(uploadsDir, 'images')));
+app.use('/images', express.static(uploadsDir));
+
+// Fallback for missing static images under /uploads or /images (returns default logo if available)
+app.use(['/uploads', '/images'], (req, res, next) => {
+  const fallbackLogo = path.join(uploadsDir, 'jaa-logo.png');
+  if (fs.existsSync(fallbackLogo)) {
+    return res.sendFile(fallbackLogo);
+  }
+  next();
+});
 
 // Rate Limiting for all API endpoints
 app.use(env.API_PREFIX, globalRateLimiter);

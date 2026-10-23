@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
+import { formatDateTime } from '../utils/dateFormatter.js';
 
 const eventSchema = new mongoose.Schema(
   {
     id: { type: Number, unique: true, index: true },
     title: { type: String, required: true, trim: true },
-    image: { type: String, default: '/images/events/workshop.jpg' },
+    image: { type: String, default: '/uploads/events/workshop.jpg' },
     startDate: { type: String, required: true },
     endDate: { type: String, required: true },
     startTime: { type: String, required: true },
@@ -22,6 +23,8 @@ const eventSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -30,6 +33,8 @@ const eventSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },

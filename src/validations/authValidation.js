@@ -34,4 +34,14 @@ export const resetPasswordSchema = z.object({
   confirmPassword: z.string().min(1, 'Confirm password is required'),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().optional(),
+  oldPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+  confirmNewPassword: z.string().optional(),
+  confirmPassword: z.string().optional(),
+  email: z.string().trim().email('Invalid email address').optional(),
+});
+
+
 

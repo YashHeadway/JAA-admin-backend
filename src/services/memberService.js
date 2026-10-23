@@ -4,6 +4,7 @@ import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
 import { ApiError } from '../utils/apiError.js';
 import { buildIdQuery } from '../utils/queryHelper.js';
 import { MEMBER_STATUS } from '../constants/status.js';
+import { formatDateOnly } from '../utils/dateFormatter.js';
 
 export class MemberService {
   static async getMembers({ status = MEMBER_STATUS.ALL, search = '', page = 1, limit = 15 } = {}) {
@@ -27,7 +28,7 @@ export class MemberService {
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
 
     const [items, total, allCount, pendingCount, approvedCount, rejectedCount] = await Promise.all([
-      Member.find(filter).sort({ id: 1 }).skip(skip).limit(parsedLimit),
+      Member.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Member.countDocuments(filter),
       Member.countDocuments({}),
       Member.countDocuments({ status: 'pending' }),
@@ -75,7 +76,7 @@ export class MemberService {
       buildIdQuery(id),
       {
         status,
-        rejectionReason: status === 'rejected' ? reason : '',
+        rejectionReason: status === 'rejected' ? reason : (reason || ''),
       },
       { returnDocument: 'after' }
     );
@@ -88,7 +89,7 @@ export class MemberService {
   }
 
   static async updateMember(id, updates) {
-    if (updates.status === 'rejected' && updates.reason && !updates.rejectionReason) {
+    if (updates.reason !== undefined && updates.rejectionReason === undefined) {
       updates.rejectionReason = updates.reason;
     }
 
@@ -115,12 +116,17 @@ export class MemberService {
 
   static async createMember(memberData) {
     const id = await getNextSequence('members');
+    const rejectionReason = memberData.rejectionReason !== undefined
+      ? memberData.rejectionReason
+      : (memberData.reason !== undefined ? memberData.reason : '');
+
     const newMember = await Member.create({
       id,
       membershipId: memberData.membershipId || `JBAD${150 + id}`,
-      joinedOn: memberData.joinedOn || new Date().toISOString().split('T')[0],
+      joinedOn: formatDateOnly(memberData.joinedOn || new Date()),
       status: memberData.status || 'pending',
       ...memberData,
+      rejectionReason,
     });
     return newMember;
   }

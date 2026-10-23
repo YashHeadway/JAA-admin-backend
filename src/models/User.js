@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { getNextSequence } from './Counter.js';
+import { formatDateTime } from '../utils/dateFormatter.js';
 
 const userSchema = new mongoose.Schema(
   {
     id: { type: Number, unique: true, index: true },
     name: { type: String, required: true, trim: true },
+    fullName: { type: String, default: '' },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     role: {
@@ -14,12 +16,14 @@ const userSchema = new mongoose.Schema(
       default: 'Admin',
     },
     dob: { type: String, default: '' },
+    dateOfBirth: { type: String, default: '' },
     gender: { type: String, enum: ['Male', 'Female', 'Other'], default: 'Male' },
     mobile: { type: String, default: '' },
     address: { type: String, default: '' },
     city: { type: String, default: '' },
     pincode: { type: String, default: '' },
     avatar: { type: String, default: '' },
+    profilePhoto: { type: String, default: '' },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
   },
@@ -33,6 +37,8 @@ const userSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -44,6 +50,8 @@ const userSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -69,9 +77,10 @@ userSchema.pre('save', async function () {
   }
 });
 
-// Compare password helper (supports bcrypt hash and plaintext fallback)
+// Compare password helper (supports bcrypt hash, direct match, and plaintext fallback)
 userSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password || !candidatePassword) return false;
+  if (candidatePassword === this.password) return true;
   if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
     return await bcrypt.compare(candidatePassword, this.password);
   }

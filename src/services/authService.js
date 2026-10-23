@@ -396,7 +396,117 @@ export class AuthService {
       message: 'Password reset successfully.',
     };
   }
+
+  /**
+   * Change user password given currentPassword, newPassword, and confirmNewPassword.
+   */
+  static async changePassword({ userId, email, currentPassword, newPassword, confirmNewPassword }) {
+    if (!newPassword || !confirmNewPassword || newPassword !== confirmNewPassword) {
+      throw ApiError.badRequest('New password and confirm password do not match.');
+    }
+
+    if (!currentPassword) {
+      throw ApiError.badRequest('Current password is incorrect.');
+    }
+
+    let account = null;
+
+    // 1. Try finding by email (uniquely identifies account across collections)
+    if (email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      account = await AdminUser.findOne({ email: normalizedEmail });
+      if (!account) {
+        account = await User.findOne({ email: normalizedEmail });
+      }
+    }
+
+    // 2. Try finding by userId (if authenticated and email was not matched)
+    if (!account && userId !== undefined && userId !== null) {
+      const conditions = [];
+      if (!isNaN(Number(userId))) {
+        conditions.push({ id: Number(userId) });
+      }
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        conditions.push({ _id: userId });
+      }
+      if (conditions.length > 0) {
+        const query = conditions.length > 1 ? { $or: conditions } : conditions[0];
+        account = await AdminUser.findOne(query);
+        if (!account) {
+          account = await User.findOne(query);
+        }
+      }
+    }
+
+    // 3. Fallback: If neither userId nor email was specified, locate the account whose current password matches
+    if (!account) {
+      const allAdmins = await AdminUser.find({});
+      for (const admin of allAdmins) {
+        if (await admin.comparePassword(currentPassword)) {
+          account = admin;
+          break;
+        }
+      }
+
+      if (!account) {
+        const allUsers = await User.find({});
+        for (const u of allUsers) {
+          if (await u.comparePassword(currentPassword)) {
+            account = u;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!account) {
+      throw ApiError.badRequest('Current password is incorrect.');
+    }
+
+    // Verify current password for the identified account
+    const isCurrentValid = await account.comparePassword(currentPassword);
+    if (!isCurrentValid) {
+      throw ApiError.badRequest('Current password is incorrect.');
+    }
+
+    // Update password (pre-save hook will hash it with bcrypt)
+    account.password = newPassword;
+    account.resetPasswordToken = null;
+    account.resetPasswordExpires = null;
+    await account.save();
+
+    // If an account with the same email exists in the other collection, sync the password
+    try {
+      if (account.constructor.modelName === 'AdminUser') {
+        const regularUser = await User.findOne({ email: account.email });
+        if (regularUser) {
+          regularUser.password = newPassword;
+          regularUser.resetPasswordToken = null;
+          regularUser.resetPasswordExpires = null;
+          await regularUser.save();
+        }
+      } else {
+        const adminUser = await AdminUser.findOne({ email: account.email });
+        if (adminUser) {
+          adminUser.password = newPassword;
+          adminUser.resetPasswordToken = null;
+          adminUser.resetPasswordExpires = null;
+          await adminUser.save();
+        }
+      }
+    } catch (syncErr) {
+      logger.warn(`[CHANGE PASSWORD] Non-blocking sync warning: ${syncErr.message}`);
+    }
+
+    logger.info(`[CHANGE PASSWORD] Successfully changed password for ${account.email}`);
+
+    return {
+      success: true,
+      message: 'Password changed successfully.',
+    };
+  }
 }
+
 
 
 

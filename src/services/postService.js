@@ -4,50 +4,69 @@ import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
 import { ApiError } from '../utils/apiError.js';
 import { buildIdQuery } from '../utils/queryHelper.js';
 
+export function detectMediaType(media = '', fallback = 'Photo') {
+  if (!media || typeof media !== 'string') return fallback;
+  const clean = media.split('?')[0].toLowerCase();
+  if (clean.endsWith('.pdf')) {
+    return 'Notice';
+  }
+  if (
+    clean.endsWith('.mp4') ||
+    clean.endsWith('.mov') ||
+    clean.endsWith('.avi') ||
+    clean.endsWith('.mkv') ||
+    clean.endsWith('.webm') ||
+    clean.endsWith('.3gp') ||
+    clean.endsWith('.m4v')
+  ) {
+    return 'Video';
+  }
+  return 'Photo';
+}
+
+export function normalizeMediaPath(media = '') {
+  if (!media || typeof media !== 'string') return '';
+  if (
+    media.startsWith('http://') ||
+    media.startsWith('https://') ||
+    media.startsWith('/uploads/') ||
+    media.startsWith('/images/')
+  ) {
+    return media;
+  }
+  return `/uploads/${media.replace(/^\/+/, '')}`;
+}
+
 export class PostService {
-  static async getPosts({ search = '', tab = 'All', type = '', dateRange = '', page = 1, limit = 15 } = {}) {
+  static async getPosts({ search = '', mediaType = '', location = '', isPinned, page = 1, limit = 15 } = {}) {
     const filter = {};
 
-    // Tab filter
-    if (tab && tab !== 'All') {
-      if (tab === 'JAA') {
-        filter.$or = [{ category: 'JAA' }, { postedBy: /JAA/i }, { id: 1 }, { id: 2 }];
-      } else if (tab === 'Photos') {
-        filter.type = 'Photo';
-      } else if (tab === 'Videos') {
-        filter.type = 'Video';
-      } else if (tab === 'Notices') {
-        filter.type = 'Notice';
-      } else if (tab === 'Events') {
-        filter.category = 'Events';
-      }
+    if (mediaType && mediaType !== 'all' && mediaType !== 'All') {
+      filter.mediaType = new RegExp(`^${mediaType}$`, 'i');
     }
 
-    // Type filter
-    if (type && type !== 'All Types') {
-      filter.type = { $regex: new RegExp(`^${type}$`, 'i') };
+    if (location && location !== 'all' && location !== 'All') {
+      filter.location = new RegExp(location.trim(), 'i');
     }
 
-    // Date range filter
-    if (dateRange && dateRange.trim()) {
-      filter.date = { $regex: new RegExp(dateRange.trim(), 'i') };
+    if (isPinned !== undefined && isPinned !== '' && isPinned !== 'all') {
+      filter.isPinned = String(isPinned).toLowerCase() === 'true';
     }
 
-    // Search filter
     if (search && search.trim()) {
       const reg = new RegExp(search.trim(), 'i');
       filter.$or = [
         { title: reg },
-        { subtitle: reg },
-        { postedBy: reg },
-        { authorEmail: reg },
+        { description: reg },
+        { location: reg },
+        { mediaType: reg },
       ];
     }
 
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
 
     const [items, total] = await Promise.all([
-      Post.find(filter).sort({ id: 1 }).skip(skip).limit(parsedLimit),
+      Post.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Post.countDocuments(filter),
     ]);
 
@@ -69,21 +88,43 @@ export class PostService {
 
   static async createPost(data) {
     const id = await getNextSequence('posts');
+    const media = normalizeMediaPath(data.media || '');
+    const mediaType = data.mediaType || detectMediaType(media);
+
     const newPost = await Post.create({
       id,
-      subtitle: data.subtitle || (data.description ? data.description.slice(0, 60) + '...' : 'New announcement'),
-      type: data.type || 'Photo',
-      category: data.category || (data.type === 'Video' ? 'Videos' : data.type === 'Notice' ? 'Notices' : 'Photos'),
-      postedBy: data.postedBy || 'Harvey Specter',
-      authorEmail: data.authorEmail || 'harveyspecter@gmail.com',
-      authorAvatar: data.authorAvatar || '/images/members/harvey-specter.jpg',
-      postThumbnail: data.postThumbnail || (data.type === 'Notice' ? null : '/images/posts/preview-dashboard.jpg'),
-      mainMedia: data.mainMedia || '/images/posts/preview-dashboard.jpg',
-      date: '24 May 2026',
-      status: data.status || 'Published',
-      ...data,
+      title: data.title,
+      description: data.description || '',
+      media,
+      mediaType,
+      location: data.location || 'Ahmedabad',
+      allowComments: data.allowComments !== undefined ? Boolean(data.allowComments) : true,
+      isPinned: data.isPinned !== undefined ? Boolean(data.isPinned) : false,
     });
     return newPost;
+  }
+
+  static async updatePost(id, updates) {
+    const allowed = ['title', 'description', 'media', 'mediaType', 'location', 'allowComments', 'isPinned'];
+    const filtered = {};
+    for (const key of allowed) {
+      if (updates[key] !== undefined) {
+        filtered[key] = updates[key];
+      }
+    }
+
+    if (filtered.media) {
+      filtered.media = normalizeMediaPath(filtered.media);
+      if (!filtered.mediaType) {
+        filtered.mediaType = detectMediaType(filtered.media);
+      }
+    }
+
+    const updated = await Post.findOneAndUpdate(buildIdQuery(id), filtered, { returnDocument: 'after' });
+    if (!updated) {
+      throw ApiError.notFound(`Post with ID '${id}' was not found`);
+    }
+    return updated;
   }
 
   static async deletePost(id) {

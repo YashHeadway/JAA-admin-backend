@@ -1,0 +1,1853 @@
+====================================================================================================
+                             JAA BACKEND - COMPLETE REST API SPECIFICATION
+====================================================================================================
+Base URL:          http://localhost:5000/api  (or http://localhost:5000)
+Server Health:     http://localhost:5000/health
+Documentation:     http://localhost:5000/api
+Date/Time Format:  All "createdAt" and "updatedAt" fields return formatted as: "DD-MM-YYYY hh:mm am/pm"
+                   (Example: "21-10-2026 05:14 pm" in Asia/Kolkata Indian Standard Time)
+                   Date fields like "joinedOn" and "createdOn" return formatted as: "DD-MM-YYYY"
+                   (Example: "23-10-2026")
+Sort Order:        All listing APIs return data in DESCENDING order (newest posted data first: { id: -1 })
+Supported Encodings: application/json, multipart/form-data, application/x-www-form-urlencoded
+Authentication:    Bearer Token ("Authorization: Bearer <token>") OR Cookie ("token" / "accessToken")
+Mock Dev Token:    "mock-jwt-token-JAA-admin" (auto-authenticates as admin in dev)
+Sequential IDs:    All models have atomic numeric IDs: 1, 2, 3, 4, ...
+====================================================================================================
+
+TABLE OF CONTENTS
+----------------------------------------------------------------------------------------------------
+1. SYSTEM & DISCOVERY ENDPOINTS
+2. AUTHENTICATION & ADMIN PROFILE APIS (/api/auth, /api/admin-profile, or /api)
+3. MEMBERS APIS (/api/members)
+4. EXECUTIVE COMMITTEE APIS (/api/committee)
+5. EVENTS APIS (/api/events)
+6. GROUPS APIS (/api/groups)
+7. BROADCASTS APIS (/api/broadcasts)
+8. LEADS APIS (/api/leads)
+9. COMPLAINTS APIS (/api/complaints)
+10. POSTS APIS (/api/posts)
+11. DASHBOARD APIS (/api/dashboard)
+12. MEDIA UPLOAD APIS (/api/upload)
+13. COMMON RESPONSE & ERROR FORMATS
+
+
+====================================================================================================
+1. SYSTEM & DISCOVERY ENDPOINTS
+====================================================================================================
+
+[1.1] Health Check
+--------------------------------------------------
+Method:      GET
+Endpoint:    /health
+Auth:        None
+Description: Returns server health, uptime, database connection status, and environment.
+
+Response (200 OK):
+{
+  "status": "UP",
+  "timestamp": "2026-10-23T11:20:00.000Z",
+  "uptime": "3600s",
+  "database": {
+    "isConnected": true,
+    "database": "JAA_Backend",
+    "mode": "MongoDB (JAA_Backend)"
+  },
+  "environment": "development"
+}
+
+
+[1.2] API Root Discovery
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api (or /api/)
+Auth:        None
+Description: Returns directory of all available route groups and endpoints.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Welcome to JAA Backend REST API",
+  "version": "1.0.0",
+  "documentation": {
+    "auth": {
+      "adminLogin": "/api/admin-login (or /api/auth/admin-login)",
+      "adminRegister": "/api/admin-register (or /api/auth/admin-register)",
+      "login": "/api/login (or /api/auth/login)",
+      "register": "/api/register (or /api/auth/register)",
+      "refreshToken": "/api/refresh-token (or /api/auth/refresh-token)",
+      "me": "/api/me (or /api/auth/me)",
+      "logout": "/api/logout (or /api/auth/logout)",
+      "forgotPassword": "/api/forgot-password (or /api/auth/forgot-password)",
+      "resetPassword": "/api/reset-password (or /api/auth/reset-password)",
+      "changePassword": "/api/change-password (or /api/auth/change-password)"
+    },
+    "members": "/api/members",
+    "committee": "/api/committee",
+    "events": "/api/events",
+    "groups": "/api/groups",
+    "broadcasts": "/api/broadcasts",
+    "leads": "/api/leads",
+    "complaints": "/api/complaints",
+    "posts": "/api/posts",
+    "dashboard": "/api/dashboard",
+    "upload": "/api/upload"
+  }
+}
+
+
+====================================================================================================
+2. AUTHENTICATION & SESSION APIS
+   (Accessible under /api or /api/auth)
+====================================================================================================
+
+[2.1] Member / General User Register
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/register  (or /api/auth/register)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None
+
+Request Body:
+{
+  "email": "user@example.com",           // (Required) String (email)
+  "password": "Password@123",            // (Required) String (min 4 chars)
+  "name": "Yash Soni",                   // (Optional) String
+  "role": "Admin",                       // (Optional) 'Admin' | 'Super Admin' | 'Committee Member' | 'Member' (default: 'Admin')
+  "mobile": "9876543210",                // (Optional) String
+  "dob": "1995-10-15",                   // (Optional) String
+  "gender": "Male",                      // (Optional) 'Male' | 'Female' | 'Other' (default: 'Male')
+  "address": "123 Jewelry Market",       // (Optional) String
+  "city": "Ahmedabad",                   // (Optional) String
+  "pincode": "380001",                   // (Optional) String
+  "avatar": "/uploads/avatar.png"        // (Optional) String or File
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "id": 2,
+    "name": "Yash Soni",
+    "email": "user@example.com",
+    "role": "Admin",
+    "mobile": "9876543210",
+    "dob": "1995-10-15",
+    "gender": "Male",
+    "address": "123 Jewelry Market",
+    "city": "Ahmedabad",
+    "pincode": "380001",
+    "avatar": "",
+    "createdAt": "23-10-2026 11:15 am",
+    "updatedAt": "23-10-2026 11:15 am"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+}
+
+
+[2.2] User / Admin Login
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/login  (or /api/auth/login)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None
+
+Request Body:
+{
+  "email": "harveyspecter@gmail.com",    // (Required) String
+  "password": "admin123"                 // (Required) String
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "id": 1,
+    "name": "Harvey Specter",
+    "email": "harveyspecter@gmail.com",
+    "role": "Admin",
+    "createdAt": "21-10-2026 04:59 pm",
+    "updatedAt": "23-10-2026 10:20 am"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+}
+
+
+[2.3] Admin Dedicated Register
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/admin-register  (or /api/auth/admin-register)
+Headers:     Content-Type: application/json
+Auth:        None
+
+Request Body:
+{
+  "email": "newadmin@example.com",       // (Required) String
+  "password": "AdminPassword@123"        // (Required) String
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "id": 2,
+    "name": "Newadmin",
+    "email": "newadmin@example.com",
+    "role": "Admin",
+    "createdAt": "23-10-2026 11:20 am",
+    "updatedAt": "23-10-2026 11:20 am"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+}
+
+
+[2.4] Admin Dedicated Login
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/admin-login  (or /api/auth/admin-login)
+Headers:     Content-Type: application/json
+Auth:        None
+
+Request Body:
+{
+  "email": "admin@gmail.com",            // (Required) String
+  "password": "AdminPassword@123"        // (Required) String
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "id": 1,
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "role": "Admin",
+    "createdAt": "21-10-2026 04:55 pm",
+    "updatedAt": "23-10-2026 10:25 am"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+}
+
+
+[2.5] Change Password
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/change-password  (or /api/auth/change-password, or camelCase: /api/changePassword)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Bearer Token (optional if session/payload identifies user)
+
+Request Body:
+{
+  "currentPassword": "OldPassword@123",       // (Required) String (also accepts alias "oldPassword")
+  "newPassword": "NewPassword@123",           // (Required) String
+  "confirmNewPassword": "NewPassword@123"     // (Required) String (also accepts alias "confirmPassword")
+}
+
+Responses:
+- Success (200 OK):
+  {
+    "success": true,
+    "message": "Password changed successfully."
+  }
+
+- If Current Password is Incorrect (400 Bad Request):
+  {
+    "success": false,
+    "message": "Current password is incorrect."
+  }
+
+- If New Passwords Do Not Match (400 Bad Request):
+  {
+    "success": false,
+    "message": "New password and confirm password do not match."
+  }
+
+
+[2.6] Forgot Password
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/forgot-password  (or /api/auth/forgot-password)
+Headers:     Content-Type: application/json
+Auth:        None
+
+Request Body:
+{
+  "email": "harveyspecter@gmail.com"     // (Required) String
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link will be sent.",
+  "resetToken": "8f3e2b9c7a1d..."        // (Included in response & email)
+}
+
+
+[2.7] Reset Password
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/reset-password  (or /api/auth/reset-password)
+Headers:     Content-Type: application/json
+Auth:        None
+
+Request Body:
+{
+  "token": "8f3e2b9c7a1d...",            // (Required) Reset token received in email
+  "newPassword": "NewPassword@123",      // (Required) String
+  "confirmPassword": "NewPassword@123"   // (Required) String
+}
+
+Responses:
+- Success (200 OK):
+  {
+    "success": true,
+    "message": "Password reset successfully."
+  }
+
+- Mismatch Passwords (400 Bad Request):
+  {
+    "success": false,
+    "message": "New password and confirm password do not match."
+  }
+
+- Invalid or Expired Token (400 Bad Request):
+  {
+    "success": false,
+    "message": "Invalid or expired password reset token."
+  }
+
+
+[2.8] Reset Password Web Page (UI View)
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/reset-password?token=8f3e2b9c7a1d...
+Description: Renders self-contained responsive HTML/Tailwind web page for client password reset.
+
+
+[2.9] Get Current User Profile (/me)
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/me  (or /api/auth/me)
+Headers:     Authorization: Bearer <token>
+Auth:        Required
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Profile retrieved successfully",
+  "data": {
+    "id": 1,
+    "name": "Harvey Specter",
+    "email": "harveyspecter@gmail.com",
+    "role": "Admin",
+    "mobile": "9876543210",
+    "dob": "1985-05-20",
+    "gender": "Male",
+    "address": "Law Chambers, CG Road",
+    "city": "Ahmedabad",
+    "pincode": "380009",
+    "avatar": "/uploads/avatar.png",
+    "createdAt": "21-10-2026 04:59 pm",
+    "updatedAt": "23-10-2026 10:20 am"
+  }
+}
+
+
+[2.10] Refresh Token
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/refresh-token  (or /api/auth/refresh-token)
+Headers:     Content-Type: application/json
+Auth:        None (Pass refreshToken in body or cookie)
+
+Request Body:
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsIn..."
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "id": 1,
+    "name": "Harvey Specter",
+    "email": "harveyspecter@gmail.com",
+    "role": "Admin"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+}
+
+
+[2.11] Logout
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/logout  (or /api/auth/logout)
+Headers:     Authorization: Bearer <token>
+Auth:        Required
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Logout successful"
+}
+
+
+[2.12] Admin Profile - Get All Profile Information
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/admin-profile (or /api/admin-profile/:id, /api/auth/admin-profile, /api/admin/profile)
+Headers:     Authorization: Bearer <token> (Optional in dev/testing; defaults to primary admin)
+Auth:        Optional / Bearer Token
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Admin profile retrieved successfully",
+  "data": {
+    "id": 1,
+    "fullName": "Harvey Specter",
+    "dateOfBirth": "2000-07-31",
+    "gender": "Male",
+    "mobile": "+91988774455",
+    "email": "admin@gmail.com",
+    "address": "The Exhibition Center, Science Road",
+    "city": "Ahmedabad",
+    "pincode": "380009",
+    "profilePhoto": "https://example.com/uploads/profile.jpg",
+    "createdAt": "23-10-2026 02:33 pm",
+    "updatedAt": "23-10-2026 02:33 pm"
+  }
+}
+
+
+[2.13] Admin Profile - Update Profile Information
+--------------------------------------------------
+Method:      PUT / PATCH / POST
+Endpoint:    /api/admin-profile (or /api/admin-profile/:id, /api/auth/admin-profile, /api/admin/profile)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Optional / Bearer Token (Identifies admin or updates primary admin)
+
+Field Details & Enums:
+  - fullName:      (Optional) String (e.g. "Harvey Specter")
+  - dateOfBirth:   (Optional) String (YYYY-MM-DD, e.g. "2000-07-31")
+  - gender:        (Optional) Enum: "Male" | "Female" | "Other"
+  - mobile:        (Optional) String (e.g. "+91988774455")
+  - email:         (Optional) String (valid email e.g. "admin@gmail.com")
+  - address:       (Optional) String (e.g. "The Exhibition Center, Science Road")
+  - city:          (Optional) String (e.g. "Ahmedabad")
+  - pincode:       (Optional) String (e.g. "380009")
+  - profilePhoto:  (Optional) String (URL) or File upload via multipart/form-data
+
+Request Body (JSON Example):
+{
+  "fullName": "Harvey Specter",
+  "dateOfBirth": "2000-07-31",
+  "gender": "Male",
+  "mobile": "+91988774455",
+  "email": "admin@gmail.com",
+  "address": "The Exhibition Center, Science Road",
+  "city": "Ahmedabad",
+  "pincode": "380009",
+  "profilePhoto": "https://example.com/uploads/profile.jpg"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Admin profile updated successfully",
+  "data": {
+    "id": 1,
+    "fullName": "Harvey Specter",
+    "dateOfBirth": "2000-07-31",
+    "gender": "Male",
+    "mobile": "+91988774455",
+    "email": "admin@gmail.com",
+    "address": "The Exhibition Center, Science Road",
+    "city": "Ahmedabad",
+    "pincode": "380009",
+    "profilePhoto": "https://example.com/uploads/profile.jpg",
+    "createdAt": "23-10-2026 02:33 pm",
+    "updatedAt": "23-10-2026 02:35 pm"
+  }
+}
+
+Validation Error (422 Unprocessable Entity - Invalid Gender):
+{
+  "success": false,
+  "message": "Invalid option: expected one of \"Male\"|\"Female\"|\"Other\"",
+  "errors": [
+    {
+      "field": "gender",
+      "message": "Invalid option: expected one of \"Male\"|\"Female\"|\"Other\""
+    }
+  ]
+}
+
+
+====================================================================================================
+3. MEMBERS APIS (/api/members)
+====================================================================================================
+
+[3.1] Get Members List (Paginated & Searchable)
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/members
+Query Params:
+  - status:  'all' | 'pending' | 'approved' | 'rejected' (default: 'all')
+  - search:  Search string (matches name, business, mobile, email, membershipId)
+  - page:    Page number (default: 1)
+  - limit:   Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "membershipId": "JAA-2026-0001",
+      "name": "Amit Shah",
+      "business": "Shah Jewellers",
+      "mobile": "9825012345",
+      "email": "amit@shahjewellers.com",
+      "city": "Ahmedabad",
+      "dob": "1980-04-12",
+      "address": "Manek Chowk",
+      "businessType": "Retailer",
+      "joinedOn": "21-10-2026",
+      "avatar": null,
+      "status": "approved",
+      "rejectionReason": "",
+      "createdAt": "21-10-2026 05:12 pm",
+      "updatedAt": "21-10-2026 05:20 pm"
+    }
+  ],
+  "pagination": {
+    "total": 45,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrev": false
+  },
+  "counts": {
+    "all": 45,
+    "pending": 5,
+    "approved": 38,
+    "rejected": 2
+  }
+}
+
+
+[3.2] Get Member Statistics Counts
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/members/stats
+Auth:        None
+
+Response (200 OK):
+{
+  "all": 45,
+  "pending": 5,
+  "approved": 38,
+  "rejected": 2
+}
+
+
+[3.3] Get Single Member Details
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/members/:id  (e.g., /api/members/1)
+Auth:        None
+
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "membershipId": "JAA-2026-0001",
+    "name": "Amit Shah",
+    "business": "Shah Jewellers",
+    "mobile": "9825012345",
+    "email": "amit@shahjewellers.com",
+    "city": "Ahmedabad",
+    "dob": "1980-04-12",
+    "address": "Manek Chowk",
+    "businessType": "Retailer",
+    "joinedOn": "21-10-2026",
+    "avatar": null,
+    "status": "approved",
+    "rejectionReason": "",
+    "createdAt": "21-10-2026 05:12 pm",
+    "updatedAt": "21-10-2026 05:20 pm"
+  }
+}
+
+
+[3.4] Create / Register New Member
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/members
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None
+
+Request Body:
+{
+  "name": "Rajesh Mehta",                // (Required) String (min 2 chars)
+  "business": "Mehta Gold & Silver",     // (Required) String (min 2 chars)
+  "mobile": "9898012345",                // (Required) String (min 8 chars)
+  "email": "rajesh@mehtajewels.com",     // (Required) String (valid email)
+  "city": "Ahmedabad",                   // (Optional) String (default: 'Ahmedabad')
+  "dob": "1985-06-25",                   // (Optional) String
+  "address": "C.G. Road",                // (Optional) String
+  "businessType": "Wholesaler",          // (Optional) String (default: 'Retailer')
+  "avatar": "/uploads/avatar.png",       // (Optional) String or File upload
+  "status": "pending",                   // (Optional) 'pending' | 'approved' | 'rejected' (default: 'pending')
+  "rejectionReason": "not proper details" // (Optional) String - rejection reason or notes (or 'reason')
+}
+
+Response (201 Created):
+{
+  "id": 2,
+  "membershipId": "JAA-2026-0002",
+  "name": "Rajesh Mehta",
+  "business": "Mehta Gold & Silver",
+  "mobile": "9898012345",
+  "email": "rajesh@mehtajewels.com",
+  "city": "Ahmedabad",
+  "dob": "1985-06-25",
+  "address": "C.G. Road",
+  "businessType": "Wholesaler",
+  "joinedOn": "23-10-2026",
+  "avatar": null,
+  "status": "pending",
+  "rejectionReason": "not proper details",
+  "createdAt": "23-10-2026 11:11 am",
+  "updatedAt": "23-10-2026 11:11 am"
+}
+
+
+[3.5] Update Member Status Specifically (Approve / Reject)
+--------------------------------------------------
+Method:      PATCH
+Endpoint:    /api/members/:id/status  (e.g., /api/members/1/status)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None
+
+Request Body:
+{
+  "status": "approved",                  // (Required) 'pending' | 'approved' | 'rejected'
+  "reason": "Verified trade license"     // (Optional) String (saved if rejected)
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "name": "Rajesh Mehta",
+  "status": "approved",
+  "rejectionReason": "",
+  "createdAt": "23-10-2026 11:11 am",
+  "updatedAt": "23-10-2026 11:15 am"
+}
+
+
+[3.6] Update Member (Full / Partial Update)
+--------------------------------------------------
+Method:      PUT or PATCH
+Endpoint:    /api/members/:id  (e.g., /api/members/1)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None
+
+Request Body (Any member fields to update):
+{
+  "business": "Mehta Bullion & Jewels",
+  "mobile": "9898099999",
+  "city": "Ahmedabad"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Member updated successfully",
+  "data": {
+    "id": 1,
+    "name": "Rajesh Mehta",
+    "business": "Mehta Bullion & Jewels",
+    "mobile": "9898099999",
+    "city": "Ahmedabad",
+    "createdAt": "23-10-2026 11:11 am",
+    "updatedAt": "23-10-2026 11:20 am"
+  }
+}
+
+
+[3.7] Delete Member
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/members/:id  (e.g., /api/members/1)
+Auth:        None
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Member deleted successfully",
+  "data": {
+    "id": 1
+  }
+}
+
+
+====================================================================================================
+4. EXECUTIVE COMMITTEE APIS (/api/committee)
+====================================================================================================
+
+[4.1] Get Committee Members
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/committee
+Query Params:
+  - search:        Search string (matches fullName, position, role, mobile, email, businessName, address)
+  - position:      'President' | 'Vice President' | 'Secretary' | 'Joint Secretary' | 'Treasurer' | 'Committee Member' | 'all'
+  - gender:        'Male' | 'Female' | 'Other' | 'all'
+  - businessType:  'B2B' | 'B2C' | 'all'
+  - page:          Page number (default: 1)
+  - limit:         Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "fullName": "Raj Gathiyawala",
+      "dateOfBirth": "1995-08-15",
+      "gender": "Male",
+      "mobile": "+919876543210",
+      "email": "raj@example.com",
+      "address": "Ahmedabad, Gujarat, India",
+      "position": "President",
+      "role": "Committee Member",
+      "businessName": "Raj Business",
+      "businessType": "B2C",
+      "gstNumber": "24AAAAF2820R1Z0",
+      "createdAt": "23-10-2026 12:59 pm",
+      "updatedAt": "23-10-2026 12:59 pm"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[4.2] Get Committee Member by ID
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/committee/:id  (e.g., /api/committee/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "fullName": "Raj Gathiyawala",
+  "dateOfBirth": "1995-08-15",
+  "gender": "Male",
+  "mobile": "+919876543210",
+  "email": "raj@example.com",
+  "address": "Ahmedabad, Gujarat, India",
+  "position": "President",
+  "role": "Committee Member",
+  "businessName": "Raj Business",
+  "businessType": "B2C",
+  "gstNumber": "24AAAAF2820R1Z0",
+  "createdAt": "23-10-2026 12:59 pm",
+  "updatedAt": "23-10-2026 12:59 pm"
+}
+
+
+[4.3] Add Committee Member
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/committee
+Headers:     Content-Type: application/json or multipart/form-data
+
+Allowed Enums:
+  - Gender:        "Male" | "Female" | "Other"
+  - Position:      "President" | "Vice President" | "Secretary" | "Joint Secretary" | "Treasurer" | "Committee Member"
+  - Business Type: "B2B" | "B2C"
+
+Request Body:
+{
+  "fullName": "Raj Gathiyawala",           // (Required) String (min 2 chars)
+  "dateOfBirth": "1995-08-15",             // (Required) Date / String (YYYY-MM-DD)
+  "gender": "Male",                        // (Required) "Male" | "Female" | "Other"
+  "mobile": "+919876543210",               // (Required) String (min 8 chars)
+  "email": "raj@example.com",              // (Required) String (valid email)
+  "address": "Ahmedabad, Gujarat, India",  // (Required) String
+  "position": "President",                 // (Required) "President" | "Vice President" | "Secretary" | "Joint Secretary" | "Treasurer" | "Committee Member"
+  "role": "Committee Member",              // (Optional) String (default: "Committee Member")
+  "businessName": "Raj Business",          // (Required) String
+  "businessType": "B2C",                   // (Required) "B2B" | "B2C"
+  "gstNumber": "24AAAAF2820R1Z0"           // (Optional) String (default: "")
+}
+
+Response (201 Created):
+{
+  "id": 1,
+  "fullName": "Raj Gathiyawala",
+  "dateOfBirth": "1995-08-15",
+  "gender": "Male",
+  "mobile": "+919876543210",
+  "email": "raj@example.com",
+  "address": "Ahmedabad, Gujarat, India",
+  "position": "President",
+  "role": "Committee Member",
+  "businessName": "Raj Business",
+  "businessType": "B2C",
+  "gstNumber": "24AAAAF2820R1Z0",
+  "createdAt": "23-10-2026 12:59 pm",
+  "updatedAt": "23-10-2026 12:59 pm"
+}
+
+
+[4.4] Update Committee Member
+--------------------------------------------------
+Method:      PUT or PATCH
+Endpoint:    /api/committee/:id  (e.g., /api/committee/1)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body (Any fields optional):
+{
+  "position": "Vice President",
+  "businessType": "B2B"
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "fullName": "Raj Gathiyawala",
+  "dateOfBirth": "1995-08-15",
+  "gender": "Male",
+  "mobile": "+919876543210",
+  "email": "raj@example.com",
+  "address": "Ahmedabad, Gujarat, India",
+  "position": "Vice President",
+  "role": "Committee Member",
+  "businessName": "Raj Business",
+  "businessType": "B2B",
+  "gstNumber": "24AAAAF2820R1Z0",
+  "createdAt": "23-10-2026 12:59 pm",
+  "updatedAt": "23-10-2026 01:00 pm"
+}
+
+
+[4.5] Delete Committee Member
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/committee/:id  (e.g., /api/committee/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "fullName": "Raj Gathiyawala"
+}
+
+
+====================================================================================================
+5. EVENTS APIS (/api/events)
+====================================================================================================
+
+[5.1] Get Events List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/events
+Query Params:
+  - status:  'active' | 'upcoming' | 'past' | 'all' (default: 'all')
+  - search:  Search string (matches title, address, description, postedBy)
+  - page:    Page number (default: 1)
+  - limit:   Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Annual Gem & Jewellery Expo 2026",
+      "image": "/uploads/events/workshop.jpg",
+      "startDate": "2026-11-10",
+      "endDate": "2026-11-12",
+      "startTime": "10:00 AM",
+      "endTime": "07:00 PM",
+      "city": "Ahmedabad",
+      "address": "Gujarat University Exhibition Centre, Helmet Cross Roads",
+      "postedBy": "Admin",
+      "description": "Premier B2B jewellery exhibition for verified jewellers across Gujarat.",
+      "isActive": true,
+      "createdAt": "21-10-2026 05:18 pm",
+      "updatedAt": "21-10-2026 05:18 pm"
+    }
+  ],
+  "pagination": {
+    "total": 8,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[5.2] Get Event by ID
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/events/:id  (e.g., /api/events/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "title": "Annual Gem & Jewellery Expo 2026",
+  "startDate": "2026-11-10",
+  "endDate": "2026-11-12",
+  "startTime": "10:00 AM",
+  "endTime": "07:00 PM",
+  "city": "Ahmedabad",
+  "address": "Gujarat University Exhibition Centre",
+  "isActive": true,
+  "createdAt": "21-10-2026 05:18 pm",
+  "updatedAt": "21-10-2026 05:18 pm"
+}
+
+
+[5.3] Create New Event
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/events
+Headers:     Content-Type: application/json or multipart/form-data
+Field for Poster/Image: "image" (optional file)
+
+Request Body:
+{
+  "title": "Hallmarking Compliance Workshop",   // (Required) String (min 3 chars)
+  "startDate": "2026-12-05",                   // (Required) String
+  "endDate": "2026-12-05",                     // (Required) String
+  "startTime": "03:00 PM",                     // (Required) String
+  "endTime": "06:00 PM",                       // (Required) String
+  "address": "JAA Bhavan, Ashra Complex",       // (Required) String (min 5 chars)
+  "city": "Ahmedabad",                         // (Optional) String (default: 'Ahmedabad')
+  "postedBy": "Admin",                         // (Optional) String
+  "description": "Comprehensive guidelines.",  // (Optional) String
+  "isActive": true                             // (Optional) Boolean (default: true)
+}
+
+Response (201 Created):
+{
+  "id": 2,
+  "title": "Hallmarking Compliance Workshop",
+  "startDate": "2026-12-05",
+  "endDate": "2026-12-05",
+  "startTime": "03:00 PM",
+  "endTime": "06:00 PM",
+  "address": "JAA Bhavan, Ashra Complex",
+  "city": "Ahmedabad",
+  "isActive": true,
+  "createdAt": "23-10-2026 11:22 am",
+  "updatedAt": "23-10-2026 11:22 am"
+}
+
+
+[5.4] Toggle Event Active / Inactive Status
+--------------------------------------------------
+Method:      PATCH
+Endpoint:    /api/events/:id/status  (e.g., /api/events/1/status)
+
+Response (200 OK):
+{
+  "id": 1,
+  "title": "Annual Gem & Jewellery Expo 2026",
+  "isActive": false,
+  "createdAt": "21-10-2026 05:18 pm",
+  "updatedAt": "23-10-2026 11:23 am"
+}
+
+
+[5.5] Update Event
+--------------------------------------------------
+Method:      PUT or PATCH
+Endpoint:    /api/events/:id  (e.g., /api/events/1)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Response (200 OK):
+{
+  "id": 1,
+  "title": "Updated Event Title",
+  "createdAt": "21-10-2026 05:18 pm",
+  "updatedAt": "23-10-2026 11:24 am"
+}
+
+
+[5.6] Delete Event
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/events/:id  (e.g., /api/events/1)
+
+Response (200 OK):
+{
+  "id": 1
+}
+
+
+====================================================================================================
+6. GROUPS APIS (/api/groups)
+====================================================================================================
+
+[6.1] Get Groups List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/groups
+Query Params:
+  - search:  Search string (matches name, about, createdBy, groupType)
+  - page:    Page number (default: 1)
+  - limit:   Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Manek Chowk Bullion Traders",
+      "memberCount": 128,
+      "about": "Official communication group for Manek Chowk traders.",
+      "groupType": "Zone Specific",
+      "createdOn": "2026-10-21",
+      "createdBy": "Admin User",
+      "status": true,
+      "recentBroadcasts": [],
+      "createdAt": "21-10-2026 05:22 pm",
+      "updatedAt": "21-10-2026 05:22 pm"
+    }
+  ],
+  "pagination": {
+    "total": 5,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[6.2] Get Group by ID
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/groups/:id  (e.g., /api/groups/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "name": "Manek Chowk Bullion Traders",
+  "memberCount": 128,
+  "status": true,
+  "createdAt": "21-10-2026 05:22 pm",
+  "updatedAt": "21-10-2026 05:22 pm"
+}
+
+
+[6.3] Create New Group
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/groups
+Headers:     Content-Type: application/json
+
+Request Body:
+{
+  "name": "Diamond Importers Committee",  // (Required) String
+  "about": "Collaboration channel.",     // (Optional) String
+  "groupType": "Category Group",         // (Optional) String (default: 'All Members')
+  "status": true                         // (Optional) Boolean (default: true)
+}
+
+Response (201 Created):
+{
+  "id": 2,
+  "name": "Diamond Importers Committee",
+  "memberCount": 0,
+  "status": true,
+  "createdAt": "23-10-2026 11:25 am",
+  "updatedAt": "23-10-2026 11:25 am"
+}
+
+
+[6.4] Update Group
+--------------------------------------------------
+Method:      PUT
+Endpoint:    /api/groups/:id  (e.g., /api/groups/1)
+
+Request Body:
+{
+  "name": "Updated Group Name",
+  "about": "Updated description"
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "name": "Updated Group Name",
+  "createdAt": "21-10-2026 05:22 pm",
+  "updatedAt": "23-10-2026 11:26 am"
+}
+
+
+[6.5] Toggle Group Status
+--------------------------------------------------
+Method:      PATCH
+Endpoint:    /api/groups/:id/status  (e.g., /api/groups/1/status)
+
+Response (200 OK):
+{
+  "id": 1,
+  "status": false,
+  "createdAt": "21-10-2026 05:22 pm",
+  "updatedAt": "23-10-2026 11:27 am"
+}
+
+
+[6.6] Delete Group
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/groups/:id  (e.g., /api/groups/1)
+
+Response (200 OK):
+{
+  "id": 1
+}
+
+
+====================================================================================================
+7. BROADCASTS APIS (/api/broadcasts)
+====================================================================================================
+
+[7.1] Get Broadcasts List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/broadcasts
+Query Params:
+  - search:  Search string (matches title, message, sentTo)
+  - page:    Page number (default: 1)
+  - limit:   Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Diwali Market Timings Notice",
+      "message": "All shops are permitted extended timings during Pushya Nakshatra and Dhanteras.",
+      "sentOn": "21 Oct 2026, 05:25 pm",
+      "sentTo": "All Members",
+      "status": "Delivered",
+      "groupId": null,
+      "createdAt": "21-10-2026 05:25 pm",
+      "updatedAt": "21-10-2026 05:25 pm"
+    }
+  ],
+  "pagination": {
+    "total": 15,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[7.2] Send / Create Broadcast
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/broadcasts
+Headers:     Content-Type: application/json
+
+Request Body:
+{
+  "title": "Emergency Security Advisory",    // (Required) String
+  "message": "Urgent verification notice.",  // (Required) String
+  "sentTo": "Retailers Zone 1",             // (Optional) String (default: 'All Members')
+  "groupId": 1                              // (Optional) Number or String
+}
+
+Response (201 Created):
+{
+  "id": 2,
+  "title": "Emergency Security Advisory",
+  "message": "Urgent verification notice.",
+  "sentOn": "23 Oct 2026, 11:28 am",
+  "sentTo": "Retailers Zone 1",
+  "status": "Delivered",
+  "groupId": 1,
+  "createdAt": "23-10-2026 11:28 am",
+  "updatedAt": "23-10-2026 11:28 am"
+}
+
+
+====================================================================================================
+8. LEADS APIS (/api/leads)
+====================================================================================================
+
+[8.1] Get Leads List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/leads
+Query Params:
+  - search:  Search string (matches leadName, name, businessName, mobile, email, city, source, status)
+  - status:  'Newest' | 'Contacted' | 'Qualified' | 'Converted' | 'Lost' | 'all'
+  - page:    Page number (default: 1)
+  - limit:   Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "leadName": "Raj Gathiyawala",
+      "name": "Raj Gathiyawala",
+      "mobile": "+919876543210",
+      "email": "raj@example.com",
+      "businessName": "Raj Business",
+      "businessType": "B2C",
+      "gstNumber": "24AAAAF2820R1Z0",
+      "city": "Ahmedabad",
+      "pincode": "380009",
+      "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",
+      "source": "WhatsApp",
+      "status": "Newest",
+      "description": "Interested in membership",
+      "createdAt": "23-10-2026 12:34 pm",
+      "updatedAt": "23-10-2026 12:34 pm"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[8.2] Get Lead by ID
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/leads/:id  (e.g., /api/leads/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "leadName": "Raj Gathiyawala",
+  "name": "Raj Gathiyawala",
+  "mobile": "+919876543210",
+  "email": "raj@example.com",
+  "businessName": "Raj Business",
+  "businessType": "B2C",
+  "gstNumber": "24AAAAF2820R1Z0",
+  "city": "Ahmedabad",
+  "pincode": "380009",
+  "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",
+  "source": "WhatsApp",
+  "status": "Newest",
+  "description": "Interested in membership",
+  "createdAt": "23-10-2026 12:34 pm",
+  "updatedAt": "23-10-2026 12:34 pm"
+}
+
+
+[8.3] Create Single Lead
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/leads
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body:
+{
+  "leadName": "Raj Gathiyawala",                                                     // (Required) String (or 'name')
+  "mobile": "+919876543210",                                                         // (Required) String (min 8 chars)
+  "email": "raj@example.com",                                                        // (Required) String (valid email)
+  "businessName": "Raj Business",                                                    // (Required) String (min 2 chars)
+  "businessType": "B2C",                                                             // (Optional) String (e.g. 'B2C', 'Retailer', default: 'Retailer')
+  "gstNumber": "24AAAAF2820R1Z0",                                                    // (Optional) String
+  "city": "Ahmedabad",                                                               // (Optional) String (default: 'Ahmedabad')
+  "pincode": "380009",                                                               // (Optional) String
+  "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",// (Optional) String
+  "source": "WhatsApp",                                                              // (Optional) String (default: 'Website')
+  "status": "Newest",                                                                // (Optional) String (default: 'Newest')
+  "description": "Interested in membership"                                          // (Optional) String
+}
+
+Response (201 Created):
+{
+  "id": 1,
+  "leadName": "Raj Gathiyawala",
+  "name": "Raj Gathiyawala",
+  "businessName": "Raj Business",
+  "mobile": "+919876543210",
+  "email": "raj@example.com",
+  "businessType": "B2C",
+  "gstNumber": "24AAAAF2820R1Z0",
+  "city": "Ahmedabad",
+  "pincode": "380009",
+  "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",
+  "source": "WhatsApp",
+  "status": "Newest",
+  "description": "Interested in membership",
+  "createdAt": "23-10-2026 12:34 pm",
+  "updatedAt": "23-10-2026 12:34 pm"
+}
+
+
+[8.4] Update Lead
+--------------------------------------------------
+Method:      PATCH or PUT
+Endpoint:    /api/leads/:id  (e.g., /api/leads/1)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body: (All fields optional)
+{
+  "leadName": "Raj Gathiyawala",
+  "status": "Contacted",
+  "description": "Followed up via call"
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "leadName": "Raj Gathiyawala",
+  "name": "Raj Gathiyawala",
+  "businessName": "Raj Business",
+  "mobile": "+919876543210",
+  "email": "raj@example.com",
+  "status": "Contacted",
+  "description": "Followed up via call",
+  "createdAt": "23-10-2026 12:34 pm",
+  "updatedAt": "23-10-2026 12:36 pm"
+}
+
+
+[8.5] Bulk Import Leads
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/leads/import
+Headers:     Content-Type: application/json
+
+Request Body:
+{
+  "leads": [
+    {
+      "leadName": "Lead One",
+      "businessName": "One Jewels",
+      "mobile": "+919800000001",
+      "email": "lead1@gmail.com",
+      "city": "Ahmedabad"
+    },
+    {
+      "leadName": "Lead Two",
+      "businessName": "Two Jewels",
+      "mobile": "+919800000002",
+      "email": "lead2@gmail.com",
+      "city": "Ahmedabad"
+    }
+  ]
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "count": 2,
+  "data": [ ... ]
+}
+
+
+[8.6] Delete Lead
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/leads/:id  (e.g., /api/leads/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "leadName": "Raj Gathiyawala"
+}
+
+
+====================================================================================================
+9. COMPLAINTS APIS (/api/complaints)
+====================================================================================================
+
+[9.1] Get Complaints List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/complaints
+Query Params:
+  - search:    Search string (matches against, type, previousInteraction, preferredResolution)
+  - status:    'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed'
+  - priority:  'Low' | 'Medium' | 'High'
+  - page:      Page number (default: 1)
+  - limit:     Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "against": "Ramesh Bullion Co",
+      "againstId": 14,
+      "againstType": "member",
+      "avatar": null,
+      "type": "Payment Dispute",
+      "typeSubtitle": "Delayed payment beyond 45 days credit agreement",
+      "priority": "High",
+      "status": "In Progress",
+      "date": "21 Oct 2026",
+      "time": "05:32 pm",
+      "previousInteraction": "Mediation phone call on 15 Oct",
+      "preferredResolution": "Arbitration committee hearing",
+      "createdAt": "21-10-2026 05:32 pm",
+      "updatedAt": "21-10-2026 05:35 pm"
+    }
+  ],
+  "pagination": {
+    "total": 9,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[9.2] Get Complaint by ID
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "against": "Ramesh Bullion Co",
+  "type": "Payment Dispute",
+  "priority": "High",
+  "status": "In Progress",
+  "createdAt": "21-10-2026 05:32 pm",
+  "updatedAt": "21-10-2026 05:35 pm"
+}
+
+
+[9.3] Register New Complaint
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/complaints
+Headers:     Content-Type: application/json or multipart/form-data
+Field for Avatar/Attachment: "avatar" (optional file)
+
+Request Body:
+{
+  "against": "Om Ornaments",             // (Required) String (min 2 chars)
+  "againstId": "Visitor",                // (Optional) String or Number (default: 'Visitor')
+  "againstType": "member",               // (Optional) 'member' | 'other' (default: 'member')
+  "type": "Hallmarking Discrepancy",     // (Required) String (min 2 chars)
+  "typeSubtitle": "Purity mismatch",     // (Optional) String
+  "priority": "Medium",                  // (Optional) 'Low' | 'Medium' | 'High' (default: 'Medium')
+  "status": "New",                       // (Optional) 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed' (default: 'New')
+  "previousInteraction": "Sent formal letter", // (Optional) String
+  "preferredResolution": "Replacement"  // (Optional) String
+}
+
+Response (201 Created):
+{
+  "id": 2,
+  "against": "Om Ornaments",
+  "type": "Hallmarking Discrepancy",
+  "status": "New",
+  "date": "23 Oct 2026",
+  "time": "11:33 am",
+  "createdAt": "23-10-2026 11:33 am",
+  "updatedAt": "23-10-2026 11:33 am"
+}
+
+
+[9.4] Update Complaint Status
+--------------------------------------------------
+Method:      PATCH
+Endpoint:    /api/complaints/:id/status  (e.g., /api/complaints/1/status)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body:
+{
+  "status": "Resolved"                   // (Required) 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed'
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "status": "Resolved",
+  "createdAt": "21-10-2026 05:32 pm",
+  "updatedAt": "23-10-2026 11:34 am"
+}
+
+
+[9.5] Partial Update Complaint
+--------------------------------------------------
+Method:      PATCH
+Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1)
+
+Request Body:
+{
+  "priority": "High",
+  "preferredResolution": "Full refund agreed in arbitration"
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "priority": "High",
+  "preferredResolution": "Full refund agreed in arbitration",
+  "createdAt": "21-10-2026 05:32 pm",
+  "updatedAt": "23-10-2026 11:35 am"
+}
+
+
+[9.6] Delete Complaint
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1)
+
+Response (200 OK):
+{
+  "id": 1
+}
+
+
+====================================================================================================
+10. POSTS APIS (/api/posts)
+====================================================================================================
+
+[10.1] Get Posts List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/posts
+Query Params:
+  - search:     Search string (matches title, description, location)
+  - mediaType:  'Photo' | 'Video' | 'Notice' | 'all'
+  - location:   Filter by location (e.g. 'Ahmedabad')
+  - isPinned:   true | false | 'all'
+  - page:       Page number (default: 1)
+  - limit:      Items per page (default: 15)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Jewellers Association Event",
+      "description": "Upcoming jewellery event",
+      "media": "/uploads/event-photo.jpg",
+      "mediaType": "Photo",
+      "location": "Ahmedabad",
+      "allowComments": true,
+      "isPinned": false,
+      "createdAt": "23-10-2026 02:00 pm",
+      "updatedAt": "23-10-2026 02:00 pm"
+    }
+  ],
+  "pagination": {
+    "total": 3,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
+}
+
+
+[10.2] Get Post by ID
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/posts/:id  (e.g., /api/posts/1)
+
+Response (200 OK):
+{
+  "id": 1,
+  "title": "Jewellers Association Event",
+  "description": "Upcoming jewellery event",
+  "media": "/uploads/event-photo.jpg",
+  "mediaType": "Photo",
+  "location": "Ahmedabad",
+  "allowComments": true,
+  "isPinned": false,
+  "createdAt": "23-10-2026 02:00 pm",
+  "updatedAt": "23-10-2026 02:00 pm"
+}
+
+
+[10.3] Create New Post
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/posts
+Headers:     Content-Type: application/json or multipart/form-data
+Field for File Upload: "media" (Accepts: Photo, Video, or Notice PDF)
+
+Supported Media Formats in "media":
+  - Photo:       .jpg, .jpeg, .png, .webp, .gif, .svg
+  - Video:       .mp4, .webm, .mov, .avi, .mkv, .3gp
+  - Notice/PDF:  .pdf
+
+Request Body:
+{
+  "title": "Jewellers Association Event", // (Required) String (min 2 chars)
+  "description": "Upcoming jewellery event", // (Optional) String
+  "media": "event-photo.jpg",               // (Required) String filename/URL OR multipart file upload
+  "location": "Ahmedabad",                  // (Optional) String (default: 'Ahmedabad')
+  "allowComments": true,                    // (Optional) Boolean (default: true)
+  "isPinned": false                         // (Optional) Boolean (default: false)
+}
+
+Response (201 Created):
+{
+  "id": 1,
+  "title": "Jewellers Association Event",
+  "description": "Upcoming jewellery event",
+  "media": "/uploads/event-photo.jpg",
+  "mediaType": "Photo",
+  "location": "Ahmedabad",
+  "allowComments": true,
+  "isPinned": false,
+  "createdAt": "23-10-2026 02:00 pm",
+  "updatedAt": "23-10-2026 02:00 pm"
+}
+
+
+[10.4] Update Post
+--------------------------------------------------
+Method:      PUT or PATCH
+Endpoint:    /api/posts/:id  (e.g., /api/posts/1)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body (Any fields optional):
+{
+  "isPinned": true,
+  "description": "Updated event description"
+}
+
+Response (200 OK):
+{
+  "id": 1,
+  "title": "Jewellers Association Event",
+  "description": "Updated event description",
+  "media": "/uploads/event-photo.jpg",
+  "mediaType": "Photo",
+  "location": "Ahmedabad",
+  "allowComments": true,
+  "isPinned": true,
+  "createdAt": "23-10-2026 02:00 pm",
+  "updatedAt": "23-10-2026 02:05 pm"
+}
+
+
+[10.5] Delete Post
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/posts/:id  (e.g., /api/posts/1)
+
+Response (200 OK):
+{
+  "id": 1
+}
+
+
+====================================================================================================
+11. DASHBOARD APIS (/api/dashboard)
+====================================================================================================
+
+[11.1] Get Dashboard Overview & Metrics
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/dashboard/stats
+Auth:        None
+
+Response (200 OK):
+{
+  "members": {
+    "all": 45,
+    "pending": 5,
+    "approved": 38,
+    "rejected": 2
+  },
+  "stats": {
+    "totalMembers": 45,
+    "pendingApprovals": 5,
+    "approvedMembers": 38,
+    "rejectedMembers": 2,
+    "totalEvents": 8,
+    "activeEvents": 4,
+    "totalLeads": 24,
+    "totalComplaints": 9,
+    "unresolvedComplaints": 4,
+    "totalGroups": 5,
+    "totalPosts": 14
+  },
+  "recent": {
+    "complaints": [
+      {
+        "id": 1,
+        "against": "Ramesh Bullion Co",
+        "type": "Payment Dispute",
+        "priority": "High",
+        "status": "In Progress",
+        "createdAt": "21-10-2026 05:32 pm",
+        "updatedAt": "21-10-2026 05:35 pm"
+      }
+    ],
+    "events": [
+      {
+        "id": 1,
+        "title": "Annual Gem & Jewellery Expo 2026",
+        "startDate": "2026-11-10",
+        "isActive": true,
+        "createdAt": "21-10-2026 05:18 pm",
+        "updatedAt": "21-10-2026 05:18 pm"
+      }
+    ],
+    "leads": [
+      {
+        "id": 1,
+        "name": "Kunal Parekh",
+        "businessName": "Parekh Gems",
+        "status": "Newest",
+        "createdAt": "21-10-2026 05:30 pm",
+        "updatedAt": "21-10-2026 05:30 pm"
+      }
+    ]
+  }
+}
+
+
+====================================================================================================
+12. MEDIA UPLOAD APIS (/api/upload)
+====================================================================================================
+
+[12.1] Upload Single File
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/upload/single
+Headers:     Content-Type: multipart/form-data
+Body Field:  "file" (binary file: image/jpeg, image/png, image/webp, image/gif, application/pdf, etc. Max 10MB)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "File uploaded successfully",
+  "data": {
+    "filename": "my-photo-1729668000000.png",
+    "originalname": "my_photo.png",
+    "mimetype": "image/png",
+    "size": 245120,
+    "url": "/uploads/my-photo-1729668000000.png"
+  }
+}
+
+
+[12.2] Upload Multiple Files
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/upload/multiple
+Headers:     Content-Type: multipart/form-data
+Body Field:  "files" (array of binary files, maximum 10 files per request)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "2 files uploaded successfully",
+  "data": [
+    {
+      "filename": "photo-1-1729668000000.jpg",
+      "originalname": "photo1.jpg",
+      "mimetype": "image/jpeg",
+      "size": 182400,
+      "url": "/uploads/photo-1-1729668000000.jpg"
+    },
+    {
+      "filename": "photo-2-1729668000001.jpg",
+      "originalname": "photo2.jpg",
+      "mimetype": "image/jpeg",
+      "size": 210500,
+      "url": "/uploads/photo-2-1729668000001.jpg"
+    }
+  ]
+}
+
+
+====================================================================================================
+13. COMMON RESPONSE & ERROR FORMATS
+====================================================================================================
+
+[13.1] Standard Success Envelope (used across endpoints)
+--------------------------------------------------
+HTTP Status: 200 OK (or 201 Created)
+{
+  "success": true,
+  "message": "Resource retrieved / operation successful",
+  "data": { ... },
+  "pagination": {
+    "total": 100,
+    "page": 1,
+    "limit": 15,
+    "totalPages": 7,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+
+[13.2] Standard Error Envelope (Operational errors)
+--------------------------------------------------
+HTTP Status: 400 Bad Request / 401 Unauthorized / 403 Forbidden / 404 Not Found / 409 Conflict / 500 Internal Error
+{
+  "success": false,
+  "message": "Human readable error message",
+  "errors": []  // (Optional array if specific validation issues exist)
+}
+
+[13.3] Validation Error Envelope (Zod schema failure - 422 Unprocessable)
+--------------------------------------------------
+HTTP Status: 422 Unprocessable Entity
+{
+  "success": false,
+  "message": "Valid email address is required",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Valid email address is required"
+    }
+  ]
+}
+
+====================================================================================================
+End of JAA Backend REST API Specification
+====================================================================================================

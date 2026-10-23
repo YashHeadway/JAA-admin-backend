@@ -3,6 +3,7 @@ import { getNextSequence } from '../models/Counter.js';
 import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
 import { ApiError } from '../utils/apiError.js';
 import { buildIdQuery } from '../utils/queryHelper.js';
+import { formatDateOnly } from '../utils/dateFormatter.js';
 
 export class GroupService {
   static async getGroups({ search = '', page = 1, limit = 15 } = {}) {
@@ -16,7 +17,7 @@ export class GroupService {
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
 
     const [items, total] = await Promise.all([
-      Group.find(filter).sort({ id: 1 }).skip(skip).limit(parsedLimit),
+      Group.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Group.countDocuments(filter),
     ]);
 
@@ -42,7 +43,7 @@ export class GroupService {
       id,
       memberCount: data.memberCount || 0,
       status: data.status ?? true,
-      createdOn: data.createdOn || new Date().toISOString().split('T')[0],
+      createdOn: formatDateOnly(data.createdOn || new Date()),
       createdBy: data.createdBy || 'Admin',
       recentBroadcasts: [],
       ...data,

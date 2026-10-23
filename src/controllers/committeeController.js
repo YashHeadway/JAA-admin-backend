@@ -2,8 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { CommitteeService } from '../services/committeeService.js';
 
 export const getCommittee = asyncHandler(async (req, res) => {
-  const { search, page, limit } = req.query;
-  const result = await CommitteeService.getCommittee({ search, page, limit });
+  const { search, position, gender, businessType, page, limit } = req.query;
+  const result = await CommitteeService.getCommittee({ search, position, gender, businessType, page, limit });
 
   return res.status(200).json({
     success: true,

@@ -28,8 +28,9 @@ export const getMemberById = asyncHandler(async (req, res) => {
 
 export const updateMemberStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { status, reason } = req.body;
-  const updated = await MemberService.updateStatus(id, status, reason);
+  const { status, reason, rejectionReason } = req.body;
+  const effectiveReason = rejectionReason !== undefined ? rejectionReason : (reason || '');
+  const updated = await MemberService.updateStatus(id, status, effectiveReason);
 
   return res.status(200).json(updated);
 });

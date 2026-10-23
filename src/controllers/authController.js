@@ -145,6 +145,28 @@ export const resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+export const changePassword = asyncHandler(async (req, res) => {
+  const currentPassword = req.body?.currentPassword ?? req.body?.oldPassword;
+  const newPassword = req.body?.newPassword;
+  const confirmNewPassword = req.body?.confirmNewPassword ?? req.body?.confirmPassword;
+  const email = req.body?.email;
+  const userId = req.user?.id || req.user?._id;
+  const userEmail = req.user?.email || email;
+
+  const result = await AuthService.changePassword({
+    userId,
+    email: userEmail,
+    currentPassword,
+    newPassword,
+    confirmNewPassword,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+});
+
 export const renderResetPasswordPage = (req, res) => {
   // If passwords leaked into GET query params by accidental browser submission, strip them immediately
   if (req.query.newPassword || req.query.confirmPassword) {
@@ -160,278 +182,150 @@ export const renderResetPasswordPage = (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reset Password - JAA Portal</title>
+  <link rel="icon" type="image/png" href="/api/assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      overflow-x: hidden;
-    }
-    .card {
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 440px;
-      padding: 36px 32px;
-      position: relative;
-      z-index: 1;
-    }
-    .header { text-align: center; margin-bottom: 24px; }
-    .logo-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #ffffff;
-      font-size: 24px;
-      margin-bottom: 14px;
-      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
-    }
-    h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
-    p.subtitle { font-size: 14px; color: #64748b; }
-    .form-group { margin-bottom: 18px; text-align: left; }
-    label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
-    .input-wrapper { position: relative; }
-    input[type="password"], input[type="text"] {
-      width: 100%;
-      padding: 12px 42px 12px 14px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 15px;
-      font-family: inherit;
-      color: #0f172a;
-      transition: all 0.2s;
-    }
-    input:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-    }
-    .toggle-btn {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #94a3b8;
-      font-size: 16px;
-      padding: 4px;
-    }
-    .toggle-btn:hover { color: #475569; }
-    .btn-submit {
-      width: 100%;
-      padding: 13px;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-      margin-top: 8px;
-    }
-    .btn-submit:hover:not(:disabled) {
-      background: linear-gradient(135deg, #1d4ed8, #1e40af);
-      transform: translateY(-1px);
-    }
-    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-    .alert {
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 18px;
-      display: none;
-      line-height: 1.4;
-    }
-    .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
-    .success-view { display: none; text-align: center; padding: 10px 0; }
-    .success-icon {
-      width: 56px;
-      height: 56px;
-      background: #dcfce7;
-      color: #16a34a;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      margin-bottom: 14px;
-    }
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    /* Fallback Custom Pop-up Modal */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.7);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-      padding: 20px;
-    }
-    .modal-backdrop.active {
-      opacity: 1;
-      visibility: visible;
-    }
-    .modal-dialog {
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-      width: 100%;
-      max-width: 400px;
-      padding: 36px 28px;
-      text-align: center;
-      transform: scale(0.85) translateY(20px);
-      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .modal-backdrop.active .modal-dialog {
-      transform: scale(1) translateY(0);
-    }
-    .modal-icon-wrapper {
-      width: 76px;
-      height: 76px;
-      border-radius: 50%;
-      background: #dcfce7;
-      margin: 0 auto 20px auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
-    }
-    .modal-icon-wrapper svg {
-      width: 42px;
-      height: 42px;
-      stroke: #16a34a;
-      stroke-width: 3.5;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      fill: none;
-      stroke-dasharray: 60;
-      stroke-dashoffset: 60;
-      animation: checkAnim 0.6s cubic-bezier(0.65, 0, 0.45, 1) 0.2s forwards;
-    }
-    @keyframes checkAnim {
-      to { stroke-dashoffset: 0; }
-    }
-    .modal-title {
-      font-size: 21px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 10px;
-    }
-    .modal-desc {
-      font-size: 15px;
-      font-weight: 600;
-      color: #334155;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
-    .btn-modal {
-      width: 100%;
-      padding: 13px;
-      background: linear-gradient(135deg, #16a34a, #15803d);
-      color: #ffffff;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
-      transition: all 0.2s;
-    }
-    .btn-modal:hover {
-      background: linear-gradient(135deg, #15803d, #166534);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45);
-    }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              500: '#4c6ef5',
+              600: '#3b5bdb',
+              700: '#364fc7',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- bcryptjs Library (Local + CDN fallback) for client-side password encryption -->
+  <script src="/api/assets/bcrypt.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 </head>
-<body>
-  <div class="card">
-    <div class="header">
-      <div class="logo-badge">🔑</div>
-      <h1>Set New Password</h1>
-      <p class="subtitle">Enter your new password below.</p>
+<body class="font-sans min-h-screen flex items-center justify-center overflow-x-hidden bg-[#f4f6fc] p-5 text-slate-800">
+
+  <!-- Soft background accents -->
+  <div class="pointer-events-none fixed -left-32 -top-32 h-96 w-96 rounded-full bg-brand-500/10 blur-3xl"></div>
+  <div class="pointer-events-none fixed -bottom-32 -right-32 h-96 w-96 rounded-full bg-red-500/10 blur-3xl"></div>
+
+  <div class="relative z-10 w-full max-w-[440px] rounded-3xl bg-white p-8 shadow-[0_25px_60px_-15px_rgba(67,97,238,0.25)] sm:p-10">
+
+    <!-- Brand Header -->
+    <div id="headerBlock" class="mb-8 text-center">
+      <div class="mb-6 flex items-center justify-center">
+        <img
+          src="/api/assets/logo.png"
+          onerror="this.src='/uploads/jaa-logo.png'"
+          alt="Jewellers Association Ahmedabad"
+          class="h-20 w-auto max-w-[290px] object-contain sm:h-24 sm:max-w-[330px] drop-shadow-sm transition-transform duration-200 hover:scale-105"
+        />
+      </div>
+      <h1 class="text-xl font-bold text-slate-800">Set New Password</h1>
+      <p class="mt-1.5 text-sm text-slate-500">Create a new password to secure your account.</p>
     </div>
 
-    <div id="errorAlert" class="alert alert-error"></div>
+    <!-- General Error Banner -->
+    <div id="errorAlert" class="mb-5 hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium leading-snug text-red-600"></div>
 
-    <form id="resetForm" onsubmit="event.preventDefault(); return false;">
-      <div class="form-group">
-        <label for="newPassword">New Password</label>
-        <div class="input-wrapper">
-          <input type="password" id="newPassword" placeholder="Enter new password" required minlength="4" autocomplete="new-password">
-          <button type="button" class="toggle-btn" onclick="toggleVisibility('newPassword', this)">👁️</button>
+    <!-- Reset Password Form -->
+    <form id="resetForm" onsubmit="event.preventDefault(); return false;" novalidate>
+
+      <!-- New Password -->
+      <div class="mb-5">
+        <label for="newPassword" class="mb-2 block text-sm font-semibold text-slate-600">New Password</label>
+        <div class="relative">
+          <input type="password" id="newPassword" placeholder="Enter new password" autocomplete="new-password"
+            class="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-12 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/15">
+          <button type="button" onclick="toggleVisibility('newPassword', this)"
+            class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600">
+            <svg class="icon-show h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <svg class="icon-hide hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+            </svg>
+          </button>
         </div>
+        <p id="newPasswordError" class="mt-1.5 hidden text-xs font-medium text-red-500"></p>
       </div>
 
-      <div class="form-group">
-        <label for="confirmPassword">Confirm Password</label>
-        <div class="input-wrapper">
-          <input type="password" id="confirmPassword" placeholder="Confirm new password" required minlength="4" autocomplete="new-password">
-          <button type="button" class="toggle-btn" onclick="toggleVisibility('confirmPassword', this)">👁️</button>
+      <!-- Confirm Password -->
+      <div class="mb-6">
+        <label for="confirmPassword" class="mb-2 block text-sm font-semibold text-slate-600">Confirm Password</label>
+        <div class="relative">
+          <input type="password" id="confirmPassword" placeholder="Confirm new password" autocomplete="new-password"
+            class="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-4 pr-12 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/15">
+          <button type="button" onclick="toggleVisibility('confirmPassword', this)"
+            class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600">
+            <svg class="icon-show h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <svg class="icon-hide hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+            </svg>
+          </button>
         </div>
+        <p id="confirmPasswordError" class="mt-1.5 hidden text-xs font-medium text-red-500"></p>
       </div>
 
-      <button type="submit" id="submitBtn" class="btn-submit">
-        <span>Change Password</span>
-      </button>
+      <!-- Submit Button (brand gradient, matches dashboard active pill) -->
+      <button
+  type="submit"
+  id="submitBtn"
+  class="h-12 w-full rounded-full
+         bg-gradient-to-b from-[#2939B5] to-[#4960F5]
+         text-sm font-bold text-white
+         shadow-lg shadow-blue-600/25
+         transition-all duration-200
+         enabled:hover:brightness-105
+         disabled:cursor-not-allowed disabled:opacity-60"
+>
+  Change Password
+</button>
     </form>
 
-    <div id="successView" class="success-view">
-      <div class="success-icon">✓</div>
-      <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Password Reset Successfully!</h2>
-      <p style="font-size: 14px; color: #64748b; line-height: 1.5;">
-        Your password has been updated. You can now close this window and log in with your new password.
-      </p>
-    </div>
-  </div>
-
-  <!-- Animated Success Pop-up Modal -->
-  <div id="successModal" class="modal-backdrop">
-    <div class="modal-dialog">
-      <div class="modal-icon-wrapper">
-        <svg viewBox="0 0 24 24">
-          <polyline points="20 6 9 17 4 12"></polyline>
+    <!-- Success View -->
+    <div id="successView" class="hidden py-4 text-center">
+      <div class="mx-auto mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-8 ring-emerald-50/70">
+        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h2 class="modal-title">Success!</h2>
-      <p class="modal-desc">
-        Your password changed successfully
+      <h2 class="mb-2 text-xl font-bold text-slate-800">Password Updated</h2>
+      <p class="text-sm font-medium leading-relaxed text-slate-600">
+        You have successfully changed your password.
       </p>
-      <button type="button" class="btn-modal" onclick="closeModal()">OK, Got It!</button>
+      <p class="mt-2 text-xs text-slate-400">
+        You can now close this tab and log in with your new password.
+      </p>
     </div>
+
+    <p class="mt-8 text-center text-xs text-slate-400">Secure password reset &middot; JAA Portal</p>
   </div>
 
   <script>
     const token = ${JSON.stringify(token)};
     const form = document.getElementById('resetForm');
     const submitBtn = document.getElementById('submitBtn');
+    const headerBlock = document.getElementById('headerBlock');
     const errorAlert = document.getElementById('errorAlert');
     const successView = document.getElementById('successView');
-    const successModal = document.getElementById('successModal');
+
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const newPasswordError = document.getElementById('newPasswordError');
+    const confirmPasswordError = document.getElementById('confirmPasswordError');
 
     // Clean browser address bar immediately if any passwords leaked in query parameters
     if (window.location.search && (window.location.search.includes('newPassword') || window.location.search.includes('confirmPassword'))) {
@@ -440,126 +334,133 @@ export const renderResetPasswordPage = (req, res) => {
     }
 
     if (!token) {
-      showError('Invalid or missing password reset token. Please request a new link from the app.');
-      form.style.display = 'none';
+      showGeneralError('Invalid or missing password reset token. Please request a new link from the app.');
+      form.classList.add('hidden');
     }
 
     function toggleVisibility(inputId, btn) {
       const input = document.getElementById(inputId);
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = '🔒';
+      const isVisible = input.type === 'text';
+      input.type = isVisible ? 'password' : 'text';
+      btn.querySelector('.icon-show').classList.toggle('hidden', !isVisible);
+      btn.querySelector('.icon-hide').classList.toggle('hidden', isVisible);
+    }
+
+    function setFieldError(input, errorEl, msg) {
+      if (msg) {
+        errorEl.textContent = msg;
+        errorEl.classList.remove('hidden');
+        input.classList.remove('border-slate-200', 'focus:border-brand-500', 'focus:ring-brand-500/15');
+        input.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-500/15');
       } else {
-        input.type = 'password';
-        btn.textContent = '👁️';
+        errorEl.textContent = '';
+        errorEl.classList.add('hidden');
+        input.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-500/15');
+        input.classList.add('border-slate-200', 'focus:border-brand-500', 'focus:ring-brand-500/15');
       }
     }
 
-    function showError(msg) {
+    function showGeneralError(msg) {
       errorAlert.textContent = msg;
-      errorAlert.style.display = 'block';
+      errorAlert.classList.remove('hidden');
     }
 
-    function showSuccessModal() {
-      successModal.classList.add('active');
+    function hideGeneralError() {
+      errorAlert.classList.add('hidden');
     }
 
-    function closeModal() {
-      successModal.classList.remove('active');
-    }
+    // Real-time validation and error clearing while typing
+    newPasswordInput.addEventListener('input', () => {
+      if (newPasswordInput.value.length >= 4) {
+        setFieldError(newPasswordInput, newPasswordError, '');
+      }
+      if (confirmPasswordInput.value) {
+        if (newPasswordInput.value !== confirmPasswordInput.value) {
+          setFieldError(confirmPasswordInput, confirmPasswordError, 'Passwords do not match.');
+        } else {
+          setFieldError(confirmPasswordInput, confirmPasswordError, '');
+        }
+      }
+    });
 
-    // Close modal if user clicks outside dialog
-    successModal.addEventListener('click', (e) => {
-      if (e.target === successModal) {
-        closeModal();
+    confirmPasswordInput.addEventListener('input', () => {
+      if (newPasswordInput.value !== confirmPasswordInput.value) {
+        setFieldError(confirmPasswordInput, confirmPasswordError, 'Passwords do not match.');
+      } else {
+        setFieldError(confirmPasswordInput, confirmPasswordError, '');
       }
     });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      errorAlert.style.display = 'none';
+      hideGeneralError();
+      setFieldError(newPasswordInput, newPasswordError, '');
+      setFieldError(confirmPasswordInput, confirmPasswordError, '');
 
-      const newPassword = document.getElementById('newPassword').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
+      const newPassword = newPasswordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
 
-      if (!newPassword || !confirmPassword) {
-        showError('Please enter both password fields.');
-        return;
+      let hasError = false;
+
+      if (!newPassword) {
+        setFieldError(newPasswordInput, newPasswordError, 'Please enter a new password.');
+        hasError = true;
+      } else if (newPassword.length < 4) {
+        setFieldError(newPasswordInput, newPasswordError, 'Password must be at least 4 characters long.');
+        hasError = true;
       }
 
-      if (newPassword !== confirmPassword) {
-        const errMsg = 'New password and confirm password do not match.';
-        showError(errMsg);
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
-            icon: 'error',
-            title: 'Password Mismatch',
-            text: errMsg,
-            confirmButtonColor: '#ef4444'
-          });
-        }
-        return;
+      if (!confirmPassword) {
+        setFieldError(confirmPasswordInput, confirmPasswordError, 'Please confirm your new password.');
+        hasError = true;
+      } else if (newPassword && newPassword !== confirmPassword) {
+        setFieldError(confirmPasswordInput, confirmPasswordError, 'Passwords do not match.');
+        hasError = true;
       }
 
-      if (newPassword.length < 4) {
-        const errMsg = 'Password must be at least 4 characters long.';
-        showError(errMsg);
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Password Too Short',
-            text: errMsg,
-            confirmButtonColor: '#f59e0b'
-          });
-        }
-        return;
-      }
+      if (hasError) return;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Updating Password...';
+
+      // Client-side password encryption with bcryptjs so raw plaintext never appears in network payload
+      let encryptedPassword = newPassword;
+      try {
+        const bcryptLib = window.bcrypt || (window.dcodeIO && window.dcodeIO.bcrypt);
+        if (bcryptLib && typeof bcryptLib.hashSync === 'function') {
+          const salt = bcryptLib.genSaltSync(10);
+          encryptedPassword = bcryptLib.hashSync(newPassword, salt);
+        } else {
+          console.warn('bcryptjs library not yet loaded, falling back');
+        }
+      } catch (encryptErr) {
+        console.error('Client encryption error:', encryptErr);
+      }
 
       try {
         const response = await fetch('/api/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword, confirmPassword })
+          body: JSON.stringify({
+            token,
+            newPassword: encryptedPassword,
+            confirmPassword: encryptedPassword
+          })
         });
 
         const data = await response.json();
 
         if (response.ok && data.success) {
-          form.style.display = 'none';
-          successView.style.display = 'block';
-
-          // Pop-up: "Your password changed successfully"
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'success',
-              title: 'Success!',
-              text: 'Your password changed successfully',
-              confirmButtonColor: '#2563eb',
-              confirmButtonText: 'OK, Got It!',
-              allowOutsideClick: false
-            });
-          } else {
-            showSuccessModal();
-          }
+          headerBlock.classList.add('hidden');
+          form.classList.add('hidden');
+          successView.classList.remove('hidden');
         } else {
-          const errMsg = data.message || 'Failed to reset password. Link may be expired.';
-          showError(errMsg);
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: errMsg,
-              confirmButtonColor: '#ef4444'
-            });
-          }
+          showGeneralError(data.message || 'Failed to reset password. Link may be expired.');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Change Password';
         }
       } catch (err) {
-        showError('Network error. Please try again.');
+        showGeneralError('Network error. Please try again.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Change Password';
       }
@@ -568,13 +469,16 @@ export const renderResetPasswordPage = (req, res) => {
 </body>
 </html>`;
 
+  // Content-Security-Policy for Tailwind and local/CDN bcrypt assets
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com data:; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self';"
+  );
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   return res.status(200).send(html);
 };
-
-
-
-
-
-
-

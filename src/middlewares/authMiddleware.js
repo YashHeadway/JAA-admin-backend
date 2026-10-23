@@ -50,6 +50,55 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+/**
+ * Optional authentication middleware: if a token or session exists, attaches req.user,
+ * otherwise proceeds gracefully without error to allow flexible endpoints.
+ */
+export const authenticateOptional = async (req, res, next) => {
+  try {
+    let token = null;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && (req.cookies.accessToken || req.cookies.token)) {
+      token = req.cookies.accessToken || req.cookies.token;
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    // Support mock token from client project development mode
+    if (token === 'mock-jwt-token-JAA-admin') {
+      const admin =
+        (await User.findOne({ email: 'admin@gmail.com' })) ||
+        (await User.findOne({ email: 'harveyspecter@gmail.com' }));
+      req.user = admin || {
+        id: 1,
+        name: 'Admin',
+        email: 'admin@gmail.com',
+        role: 'Admin',
+      };
+      return next();
+    }
+
+    // Verify JWT
+    jwt.verify(token, env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        if (err.name === 'TokenExpiredError') {
+          return next(ApiError.unauthorized('Token has expired. Please log in again.'));
+        }
+        return next(ApiError.unauthorized('Invalid authentication token.'));
+      }
+
+      req.user = decoded;
+      next();
+    });
+  } catch {
+    next();
+  }
+};
+
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {

@@ -2,8 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { PostService } from '../services/postService.js';
 
 export const getPosts = asyncHandler(async (req, res) => {
-  const { search, tab, type, dateRange, page, limit } = req.query;
-  const result = await PostService.getPosts({ search, tab, type, dateRange, page, limit });
+  const { search, mediaType, location, isPinned, page, limit } = req.query;
+  const result = await PostService.getPosts({ search, mediaType, location, isPinned, page, limit });
 
   return res.status(200).json({
     success: true,
@@ -20,6 +20,11 @@ export const getPostById = asyncHandler(async (req, res) => {
 export const createPost = asyncHandler(async (req, res) => {
   const created = await PostService.createPost(req.body);
   return res.status(201).json(created);
+});
+
+export const updatePost = asyncHandler(async (req, res) => {
+  const updated = await PostService.updatePost(req.params.id, req.body);
+  return res.status(200).json(updated);
 });
 
 export const deletePost = asyncHandler(async (req, res) => {

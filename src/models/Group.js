@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatDateTime, formatDateOnly } from '../utils/dateFormatter.js';
 
 const groupSchema = new mongoose.Schema(
   {
@@ -19,6 +20,9 @@ const groupSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
+        if (ret.createdOn) ret.createdOn = formatDateOnly(ret.createdOn);
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
@@ -27,6 +31,9 @@ const groupSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
+        if (ret.createdOn) ret.createdOn = formatDateOnly(ret.createdOn);
+        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
+        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
       },
     },
