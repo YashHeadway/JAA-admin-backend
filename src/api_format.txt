@@ -1402,59 +1402,101 @@ Response (200 OK):
 Method:      GET
 Endpoint:    /api/complaints
 Query Params:
-  - search:    Search string (matches against, type, previousInteraction, preferredResolution)
-  - status:    'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed'
-  - priority:  'Low' | 'Medium' | 'High'
+  - search:    Search string (matches complaintId, complaintNumber, complaintType, complaintAgainst, complaintBy, description, location)
+  - status:    'Open' | 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed' | 'All'
+  - priority:  'Low' | 'Medium' | 'High' | 'All'
   - page:      Page number (default: 1)
   - limit:     Items per page (default: 15)
 
 Response (200 OK):
 {
   "success": true,
+  "message": "Complaints fetched successfully",
+  "summary": {
+    "totalComplaints": 5,
+    "againstMember": 3,
+    "againstOther": 2
+  },
   "data": [
     {
-      "id": 1,
-      "against": "Ramesh Bullion Co",
-      "againstId": 14,
-      "againstType": "member",
-      "avatar": null,
-      "type": "Payment Dispute",
-      "typeSubtitle": "Delayed payment beyond 45 days credit agreement",
-      "priority": "High",
-      "status": "In Progress",
-      "date": "21 Oct 2026",
-      "time": "05:32 pm",
-      "previousInteraction": "Mediation phone call on 15 Oct",
-      "preferredResolution": "Arbitration committee hearing",
-      "createdAt": "21-10-2026 05:32 pm",
-      "updatedAt": "21-10-2026 05:35 pm"
+      "complaintId": 5,
+      "complaintAgainst": "Other",
+      "complaintBy": {
+        "memberId": 17,
+        "name": "Paresh Shah",
+        "business": "Shah Brothers Jewellers",
+        "avatar": "/uploads/members/paresh.jpg"
+      },
+      "complaintType": "Unauthorized Trading",
+      "priority": "Medium",
+      "status": "Resolved",
+      "updatedBy": null,
+      "createdAt": "10-10-2026 09:15 pm",
+      "updatedAt": "15-10-2026 09:30 pm"
     }
-  ],
-  "pagination": {
-    "total": 9,
-    "page": 1,
-    "limit": 15,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  ]
 }
 
 
-[9.2] Get Complaint by ID
+[9.2] Get Complaint Details by ID / Complaint Number
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1)
+Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1 or /api/complaints/CMP-2026-001)
 
 Response (200 OK):
 {
-  "id": 1,
-  "against": "Ramesh Bullion Co",
-  "type": "Payment Dispute",
-  "priority": "High",
-  "status": "In Progress",
-  "createdAt": "21-10-2026 05:32 pm",
-  "updatedAt": "21-10-2026 05:35 pm"
+  "success": true,
+  "message": "Complaint details fetched successfully",
+  "data": {
+    "complaintId": 1,
+    "complaintAgainst": "Member",
+    "complaintBy": {
+      "memberId": 12,
+      "name": "Ramesh Mehta",
+      "business": "Mehta Jewellers",
+      "mobile": "9737126164",
+      "email": "ramesh@gmail.com",
+      "avatar": "/uploads/members/ramesh.jpg"
+    },
+    "complaintType": "Payment Dispute",
+    "hasPreviousInteraction": false,
+    "preferredResolution": "Requesting immediate payment of pending amount.",
+    "complaintDetails": {
+      "incidentDate": "2026-09-03",
+      "incidentTime": "14:30",
+      "location": "Ahmedabad",
+      "priority": "High",
+      "proofAvailable": true,
+      "amountInvolved": 450000
+    },
+    "description": {
+      "issueSummary": "Payment not received for gold jewellery order",
+      "detailedDescription": "Payment has not been received despite multiple reminders."
+    },
+    "media": [
+      {
+        "url": "/uploads/payment-proof.jpg",
+        "type": "Photo"
+      },
+      {
+        "url": "/uploads/complaint-video.mp4",
+        "type": "Video"
+      },
+      {
+        "url": "/uploads/invoice.pdf",
+        "type": "Document"
+      }
+    ],
+    "status": "In Progress",
+    "updatedBy": "Harvey Specter",
+    "adminAction": {
+      "resolutionNotes": "Mediation scheduled.",
+      "updatedBy": "Harvey Specter",
+      "updatedAt": "23-10-2026 05:55 pm"
+    },
+    "createdAt": "03-09-2026 08:00 pm",
+    "updatedAt": "23-10-2026 05:55 pm"
+  }
 }
 
 
@@ -1463,83 +1505,143 @@ Response (200 OK):
 Method:      POST
 Endpoint:    /api/complaints
 Headers:     Content-Type: application/json or multipart/form-data
-Field for Avatar/Attachment: "avatar" (optional file)
 
 Request Body:
 {
-  "against": "Om Ornaments",             // (Required) String (min 2 chars)
-  "againstId": "Visitor",                // (Optional) String or Number (default: 'Visitor')
-  "againstType": "member",               // (Optional) 'member' | 'other' (default: 'member')
-  "type": "Hallmarking Discrepancy",     // (Required) String (min 2 chars)
-  "typeSubtitle": "Purity mismatch",     // (Optional) String
-  "priority": "Medium",                  // (Optional) 'Low' | 'Medium' | 'High' (default: 'Medium')
-  "status": "New",                       // (Optional) 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed' (default: 'New')
-  "previousInteraction": "Sent formal letter", // (Optional) String
-  "preferredResolution": "Replacement"  // (Optional) String
+  "complaintAgainst": "Member",
+  "targetMemberId": 12,
+  "complaintType": "Payment Issue",
+  "hasPreviousInteraction": false,
+  "preferredResolution": "Requesting immediate payment of pending amount.",
+  "complaintDetails": {
+    "incidentDate": "2026-12-15",
+    "incidentTime": "17:30",
+    "location": "Iscon Cross Road, Ahmedabad",
+    "priority": "High",
+    "proofAvailable": true,
+    "amountInvolved": 450000
+  },
+  "description": {
+    "issueSummary": "Payment not received for gold jewellery order",
+    "detailedDescription": "Payment has not been received despite multiple reminders."
+  },
+  "media": [
+    {
+      "url": "/uploads/payment-proof.jpg",
+      "type": "Photo"
+    }
+  ]
 }
 
 Response (201 Created):
 {
-  "id": 2,
-  "against": "Om Ornaments",
-  "type": "Hallmarking Discrepancy",
-  "status": "New",
-  "date": "23 Oct 2026",
-  "time": "11:33 am",
-  "createdAt": "23-10-2026 11:33 am",
-  "updatedAt": "23-10-2026 11:33 am"
+  "success": true,
+  "message": "Complaint registered successfully",
+  "data": {
+    "id": 2,
+    "complaintNumber": "CMP-2026-002",
+    "status": "New",
+    "complaintAgainst": "Member",
+    "member": {
+      "id": 12,
+      "name": "Yash Soni"
+    },
+    "complaintType": "Payment Issue",
+    "hasPreviousInteraction": false,
+    "preferredResolution": "Requesting immediate payment of pending amount.",
+    "complaintDetails": {
+      "incidentDate": "2026-12-15",
+      "incidentTime": "17:30",
+      "location": "Iscon Cross Road, Ahmedabad",
+      "priority": "High",
+      "proofAvailable": true,
+      "amountInvolved": 450000
+    },
+    "description": {
+      "issueSummary": "Payment not received for gold jewellery order",
+      "detailedDescription": "Payment has not been received despite multiple reminders."
+    },
+    "media": [
+      {
+        "url": "/uploads/payment-proof.jpg",
+        "type": "Photo"
+      }
+    ],
+    "resolutionNotes": "",
+    "createdAt": "23-10-2026 04:37 pm",
+    "updatedAt": "23-10-2026 04:37 pm"
+  }
 }
 
 
-[9.4] Update Complaint Status
+[9.4] Update Complaint Status & Resolution Notes (Admin Action)
 --------------------------------------------------
-Method:      PATCH
-Endpoint:    /api/complaints/:id/status  (e.g., /api/complaints/1/status)
+Method:      PATCH / PUT
+Endpoint:    /api/complaints/:id/status (or /api/complaints/:id)
 Headers:     Content-Type: application/json or multipart/form-data
 
 Request Body:
 {
-  "status": "Resolved"                   // (Required) 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed'
+  "status": "In Progress",                                              // (Optional) 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed'
+  "resolutionNotes": "Mediation scheduled with both parties on Friday.", // (Optional) String
+  "complaintDetails": {
+    "priority": "Medium"
+  }
 }
 
 Response (200 OK):
 {
-  "id": 1,
-  "status": "Resolved",
-  "createdAt": "21-10-2026 05:32 pm",
-  "updatedAt": "23-10-2026 11:34 am"
+  "success": true,
+  "message": "Complaint updated successfully",
+  "data": {
+    "id": 2,
+    "complaintNumber": "CMP-2026-002",
+    "status": "In Progress",
+    "complaintAgainst": "Member",
+    "member": {
+      "id": 12,
+      "name": "Yash Soni"
+    },
+    "complaintType": "Payment Issue",
+    "hasPreviousInteraction": false,
+    "preferredResolution": "Requesting immediate payment of pending amount.",
+    "complaintDetails": {
+      "incidentDate": "2026-12-15",
+      "incidentTime": "17:30",
+      "location": "Iscon Cross Road, Ahmedabad",
+      "priority": "Medium",
+      "proofAvailable": true,
+      "amountInvolved": 450000
+    },
+    "description": {
+      "issueSummary": "Payment not received for gold jewellery order",
+      "detailedDescription": "Payment has not been received despite multiple reminders."
+    },
+    "media": [
+      {
+        "url": "/uploads/payment-proof.jpg",
+        "type": "Photo"
+      }
+    ],
+    "resolutionNotes": "Mediation scheduled with both parties on Friday.",
+    "createdAt": "23-10-2026 04:37 pm",
+    "updatedAt": "23-10-2026 04:38 pm"
+  }
 }
 
 
-[9.5] Partial Update Complaint
---------------------------------------------------
-Method:      PATCH
-Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1)
-
-Request Body:
-{
-  "priority": "High",
-  "preferredResolution": "Full refund agreed in arbitration"
-}
-
-Response (200 OK):
-{
-  "id": 1,
-  "priority": "High",
-  "preferredResolution": "Full refund agreed in arbitration",
-  "createdAt": "21-10-2026 05:32 pm",
-  "updatedAt": "23-10-2026 11:35 am"
-}
-
-
-[9.6] Delete Complaint
+[9.5] Delete Complaint
 --------------------------------------------------
 Method:      DELETE
 Endpoint:    /api/complaints/:id  (e.g., /api/complaints/1)
 
 Response (200 OK):
 {
-  "id": 1
+  "success": true,
+  "message": "Complaint deleted successfully",
+  "data": {
+    "id": 1
+  }
 }
 
 
