@@ -18,8 +18,12 @@ const router = Router();
 router.get('/', getCommittee);
 router.get('/:id', getCommitteeById);
 router.post('/', handleFormData(), validate(createCommitteeSchema), createCommittee);
-router.put('/:id', handleFormData(), validate(updateCommitteeSchema), updateCommittee);
-router.patch('/:id', handleFormData(), validate(updateCommitteeSchema), updateCommittee);
+
+// Update committee (supports PUT, PATCH, and POST with :id or /update/:id)
+router.put(['/:id', '/update/:id'], handleFormData(), validate(updateCommitteeSchema), updateCommittee);
+router.patch(['/:id', '/update/:id'], handleFormData(), validate(updateCommitteeSchema), updateCommittee);
+router.post(['/:id', '/update/:id'], handleFormData(), validate(updateCommitteeSchema), updateCommittee);
+
 router.delete('/:id', deleteCommittee);
 
 export default router;

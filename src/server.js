@@ -7,7 +7,7 @@ const startServer = async () => {
   // Connect database if MONGO_URI is set
   await connectDB();
 
-  const server = app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
     const dbStatus = getDbStatus();
     logger.info('====================================================');
     logger.info(`🚀 JAA Backend Server listening on port ${env.PORT}`);

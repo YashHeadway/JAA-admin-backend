@@ -255,7 +255,10 @@ export class AuthService {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const admin = await AdminUser.findOne({ email: normalizedEmail });
+    let admin = await AdminUser.findOne({ email: normalizedEmail });
+    if (!admin) {
+      admin = await User.findOne({ email: normalizedEmail });
+    }
 
     if (!admin) {
       throw ApiError.unauthorized('Invalid email or password');
@@ -336,7 +339,7 @@ export class AuthService {
   /**
    * Reset password using token, newPassword and confirmPassword.
    */
-  static async resetPassword({ token, newPassword, confirmPassword }) {
+  static async resetPassword({ token, newPassword, confirmPassword, email }) {
     if (!newPassword || !confirmPassword || newPassword !== confirmPassword) {
       throw ApiError.badRequest('New password and confirm password do not match.');
     }
@@ -351,9 +354,20 @@ export class AuthService {
       resetPasswordExpires: { $gt: now },
     };
 
-    let account = await AdminUser.findOne(query);
+    let account = null;
+    if (email) {
+      const emailQuery = { ...query, email: email.trim().toLowerCase() };
+      account = await AdminUser.findOne(emailQuery);
+      if (!account) {
+        account = await User.findOne(emailQuery);
+      }
+    }
+
     if (!account) {
-      account = await User.findOne(query);
+      account = await AdminUser.findOne(query);
+      if (!account) {
+        account = await User.findOne(query);
+      }
     }
 
     if (!account) {

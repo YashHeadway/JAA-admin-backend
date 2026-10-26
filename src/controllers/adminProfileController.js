@@ -6,6 +6,7 @@ export const getAdminProfile = asyncHandler(async (req, res) => {
   const profile = await AdminProfileService.getProfile(req.user, targetId);
   return res.status(200).json({
     success: true,
+    status: true,
     message: 'Admin profile retrieved successfully',
     data: profile,
   });
@@ -16,6 +17,7 @@ export const updateAdminProfile = asyncHandler(async (req, res) => {
   const updatedProfile = await AdminProfileService.updateProfile(req.user, req.body, targetId);
   return res.status(200).json({
     success: true,
+    status: true,
     message: 'Admin profile updated successfully',
     data: updatedProfile,
   });

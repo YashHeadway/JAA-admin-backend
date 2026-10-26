@@ -493,17 +493,57 @@ export class ComplaintService {
       }));
     }
 
-    // ComplaintBy merge
-    if (payload.complaintBy) {
+    // Extract incoming member identifier from root or nested payload
+    const incomingMemberId =
+      payload.memberId !== undefined
+        ? payload.memberId
+        : payload.complainantId !== undefined
+        ? payload.complainantId
+        : payload.targetMemberId !== undefined
+        ? payload.targetMemberId
+        : payload.complaintBy?.memberId !== undefined
+        ? payload.complaintBy.memberId
+        : payload['complaintBy.memberId'] !== undefined
+        ? payload['complaintBy.memberId']
+        : payload['complaintBy[memberId]'] !== undefined
+        ? payload['complaintBy[memberId]']
+        : payload.member?.id;
+
+    // ComplaintBy merge & Member Details automatic synchronization
+    if (incomingMemberId !== undefined || payload.complaintBy) {
       const prev = existing.complaintBy || {};
-      const next = payload.complaintBy;
+      const next = payload.complaintBy || {};
+
+      let rawId = incomingMemberId !== undefined ? incomingMemberId : (next.memberId !== undefined ? next.memberId : prev.memberId);
+      const foundMember = rawId ? await this.findMember(rawId) : null;
+
+      let resolvedMemberId = rawId;
+      if (foundMember && foundMember.id !== undefined) {
+        resolvedMemberId = foundMember.id;
+      } else if (!isNaN(Number(resolvedMemberId)) && Number(resolvedMemberId) > 0) {
+        resolvedMemberId = Number(resolvedMemberId);
+      }
+
+      // If a member was found in DB, pull their latest profile details unless explicitly overridden in payload
+      const name = next.name || payload.name || (foundMember ? (foundMember.name || foundMember.fullName) : prev.name);
+      const business = next.business || payload.business || (foundMember ? (foundMember.business || foundMember.company || foundMember.firmName) : prev.business);
+      const mobile = next.mobile || payload.mobile || (foundMember ? (foundMember.mobile || foundMember.phone) : prev.mobile);
+      const email = next.email || payload.email || (foundMember ? foundMember.email : prev.email);
+      const avatar = next.avatar || payload.avatar || (foundMember ? (foundMember.avatar || foundMember.profilePhoto) : prev.avatar);
+
       updateFields.complaintBy = {
-        memberId: next.memberId !== undefined ? next.memberId : prev.memberId,
-        name: next.name !== undefined ? next.name : prev.name,
-        business: next.business !== undefined ? next.business : prev.business,
-        mobile: next.mobile !== undefined ? next.mobile : prev.mobile,
-        email: next.email !== undefined ? next.email : prev.email,
-        avatar: next.avatar !== undefined ? next.avatar : prev.avatar,
+        memberId: resolvedMemberId,
+        name: name || '',
+        business: business || '',
+        mobile: mobile || '',
+        email: email || '',
+        avatar: avatar || null,
+      };
+
+      updateFields.targetMemberId = resolvedMemberId;
+      updateFields.member = {
+        id: resolvedMemberId,
+        name: name || '',
       };
     }
 

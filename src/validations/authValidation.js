@@ -28,11 +28,18 @@ export const forgotPasswordSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
 });
 
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Password reset token is required'),
-  newPassword: z.string().min(1, 'New password is required'),
-  confirmPassword: z.string().min(1, 'Confirm password is required'),
-});
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().optional(),
+    resetToken: z.string().optional(),
+    email: z.string().trim().email('Invalid email address').optional(),
+    newPassword: z.string().min(1, 'New password is required'),
+    confirmPassword: z.string().min(1, 'Confirm password is required'),
+  })
+  .refine((data) => data.token || data.resetToken, {
+    message: 'Password reset token is required',
+    path: ['token'],
+  });
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),

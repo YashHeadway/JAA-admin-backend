@@ -4,6 +4,7 @@ import { upload } from '../middlewares/uploadMiddleware.js';
 
 const router = Router();
 
+router.post('/', upload.single('file'), uploadSingle);
 router.post('/single', upload.single('file'), uploadSingle);
 router.post('/multiple', upload.array('files', 10), uploadMultiple);
 

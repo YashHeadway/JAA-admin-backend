@@ -1,0 +1,24 @@
+[
+  {
+    "v": 1,
+    "id": "jaa-backend-live-env",
+    "name": "JAA-Backend LAN & Local",
+    "variables": [
+      {
+        "key": "admin_base_url",
+        "value": "http://192.168.1.49:5000/api/admin/",
+        "secret": false
+      },
+      {
+        "key": "admin_panel_url",
+        "value": "http://192.168.1.49:5000/api/admin/",
+        "secret": false
+      },
+      {
+        "key": "token",
+        "value": "",
+        "secret": false
+      }
+    ]
+  }
+]

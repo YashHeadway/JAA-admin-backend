@@ -25,6 +25,14 @@ const app = express();
 // Trust proxy if behind a reverse proxy (Nginx, Heroku, etc.)
 app.set('trust proxy', 1);
 
+// Normalize URL duplicate slashes (e.g. //admin//members -> /admin/members)
+app.use((req, res, next) => {
+  if (req.url && req.url.includes('//')) {
+    req.url = req.url.replace(/\/{2,}/g, '/');
+  }
+  next();
+});
+
 // Security HTTP headers
 app.use(
   helmet({
@@ -59,18 +67,29 @@ const morganStream = {
 };
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms', { stream: morganStream }));
 
-// Body parsers
-app.use(express.json({ limit: '10mb' }));
+// Body parsers (with permissive JSON parsing that tolerates trailing commas)
+app.use(express.text({ limit: '10mb', type: ['application/json', 'text/*', 'application/text'] }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.text({ limit: '10mb', type: ['text/*', 'application/text'] }));
+app.use(express.json({ limit: '10mb' }));
 
-// Parse raw text bodies as JSON if applicable and guarantee req.body is defined
 app.use((req, res, next) => {
-  if (typeof req.body === 'string' && req.body.trim().startsWith('{')) {
-    try {
-      req.body = JSON.parse(req.body);
-    } catch {
-      // Ignore if not valid JSON
+  if (typeof req.body === 'string' && req.body.trim().length > 0) {
+    const raw = req.body.trim();
+    if (raw.startsWith('{') || raw.startsWith('[')) {
+      try {
+        req.body = JSON.parse(raw);
+      } catch {
+        try {
+          // Auto-remove trailing commas before closing braces/brackets (e.g. ,} or ,])
+          const sanitized = raw.replace(/,\s*([}\]])/g, '$1');
+          req.body = JSON.parse(sanitized);
+        } catch (err) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid JSON payload: ${err.message}. Please check for trailing commas or mismatched quotes.`,
+          });
+        }
+      }
     }
   }
   if (req.body === undefined) {

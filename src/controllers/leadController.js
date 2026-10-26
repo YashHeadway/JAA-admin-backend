@@ -14,26 +14,50 @@ export const getLeads = asyncHandler(async (req, res) => {
 
 export const getLeadById = asyncHandler(async (req, res) => {
   const lead = await LeadService.getLeadById(req.params.id);
-  return res.status(200).json(lead);
+  return res.status(200).json({
+    success: true,
+    status: true,
+    data: lead,
+  });
 });
 
 export const createLead = asyncHandler(async (req, res) => {
   const created = await LeadService.createLead(req.body);
-  return res.status(201).json(created);
+  return res.status(201).json({
+    success: true,
+    status: true,
+    message: 'Lead created successfully',
+    data: created,
+  });
 });
 
 export const updateLead = asyncHandler(async (req, res) => {
   const updated = await LeadService.updateLead(req.params.id, req.body);
-  return res.status(200).json(updated);
+  return res.status(200).json({
+    success: true,
+    status: true,
+    message: 'Lead updated successfully',
+    data: updated,
+  });
 });
 
 export const deleteLead = asyncHandler(async (req, res) => {
   const deleted = await LeadService.deleteLead(req.params.id);
-  return res.status(200).json(deleted);
+  return res.status(200).json({
+    success: true,
+    status: true,
+    message: 'Lead deleted successfully',
+    data: deleted,
+  });
 });
 
 export const importLeads = asyncHandler(async (req, res) => {
   const { leads } = req.body;
   const result = await LeadService.importLeads(leads);
-  return res.status(200).json(result);
+  return res.status(200).json({
+    success: true,
+    status: true,
+    message: 'Leads imported successfully',
+    data: result,
+  });
 });

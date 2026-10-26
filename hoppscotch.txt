@@ -1,0 +1,683 @@
+====================================================================================================
+                        JAA-BACKEND - COMPLETE ADMIN REST API SPECIFICATION
+====================================================================================================
+Base URL Environment Variable:
+  admin_base_url : http://192.168.1.49:5000/api/admin/
+  (Localhost fallback: http://localhost:5000/api/admin/)
+  token          : Bearer <JWT Token>
+
+All endpoints simply append to <<admin_base_url>>:
+  Example: <<admin_base_url>>members -> http://192.168.1.49:5000/api/admin/members
+====================================================================================================
+
+TABLE OF CONTENTS:
+1. AUTHENTICATION & PROFILE APIS
+   1.1 Admin Login               (POST <<admin_base_url>>login)
+   1.2 Admin Register (Signup)   (POST <<admin_base_url>>register)
+   1.3 Admin Forget Password     (POST <<admin_base_url>>forget-password)
+   1.4 Admin Reset Password      (POST <<admin_base_url>>reset-password)
+   1.5 Admin Change Password     (POST <<admin_base_url>>change-password)
+   1.6 Admin Logout              (POST <<admin_base_url>>logout)
+   1.7 Admin Profile             (GET / PUT / POST <<admin_base_url>>profile)
+2. MEMBERS APIS                  (GET  <<admin_base_url>>members)
+3. EXECUTIVE COMMITTEE APIS      (GET  <<admin_base_url>>committee)
+4. EVENTS APIS                   (GET  <<admin_base_url>>events)
+5. GROUPS APIS                   (GET  <<admin_base_url>>groups)
+6. BROADCASTS APIS               (GET  <<admin_base_url>>broadcasts)
+7. LEADS APIS                    (GET  <<admin_base_url>>leads)
+8. COMPLAINTS APIS               (GET  <<admin_base_url>>complaints)
+9. POSTS APIS                    (GET  <<admin_base_url>>posts)
+10. DASHBOARD STATS APIS         (GET  <<admin_base_url>>dashboard)
+11. MEDIA UPLOAD APIS            (POST <<admin_base_url>>upload)
+
+====================================================================================================
+1. AUTHENTICATION & PROFILE APIS
+====================================================================================================
+
+[1.1] Admin Login
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>login
+          (Full URL: http://192.168.1.49:5000/api/admin/login or http://localhost:5000/api/admin/login)
+
+Headers:
+  Content-Type: application/json
+
+Request Body JSON:
+{
+  "email": "admin@gmail.com",
+  "password": "Admin@12345"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "id": 1,
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "role": "Admin"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+
+[1.2] Admin Register (Signup)
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>register
+          (Full URL: http://192.168.1.49:5000/api/admin/register)
+
+Headers:
+  Content-Type: application/json
+
+Request Body JSON:
+{
+  "email": "admin@gmail.com",
+  "password": "Admin@12345"
+}
+
+Full Registration Body (Optional Fields):
+{
+  "name": "Admin",
+  "email": "admin@gmail.com",
+  "password": "Admin@12345",
+  "role": "Admin",
+  "mobile": "9876543210",
+  "gender": "Male",
+  "city": "Ahmedabad"
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "id": 1,
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "role": "Admin"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+
+[1.3] Admin Forget Password
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>forget-password
+          (Full URL: http://192.168.1.49:5000/api/admin/forget-password)
+
+Headers:
+  Content-Type: application/json
+
+Request Body JSON:
+{
+  "email": "admin@gmail.com"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link will be sent.",
+  "resetToken": "8f3e2b9c7a1d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f"
+}
+
+
+[1.4] Admin Reset Password
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>reset-password
+          (Full URL: http://192.168.1.49:5000/api/admin/reset-password)
+
+Headers:
+  Content-Type: application/json
+
+Request Body JSON:
+{
+  "email": "admin@gmail.com",
+  "token": "your_reset_token",
+  "newPassword": "Admin@12345",
+  "confirmPassword": "Admin@12345"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Password reset successfully."
+}
+
+
+[1.5] Admin Change Password
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>change-password
+          (Full URL: http://192.168.1.49:5000/api/admin/change-password)
+
+Headers:
+  Content-Type: application/json
+  Authorization: Bearer <<token>>
+
+Request Body JSON:
+{
+  "currentPassword": "Admin@12345",
+  "newPassword": "AdminNew@12345",
+  "confirmNewPassword": "AdminNew@12345"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Password changed successfully."
+}
+
+
+[1.6] Admin Logout
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>logout
+          (Full URL: http://192.168.1.49:5000/api/admin/logout)
+
+Headers:
+  Authorization: Bearer <<token>>   (Optional)
+
+Request Body JSON:
+{}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Logout successful"
+}
+
+
+[1.7] Admin Profile (Get & Update)
+----------------------------------------------------------------------------------------------------
+[A] Get Admin Profile:
+Method:   GET
+Endpoint: <<admin_base_url>>profile
+          (Full URL: http://192.168.1.49:5000/api/admin/profile)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Admin profile retrieved successfully",
+  "data": {
+    "id": 1,
+    "fullName": "Admin",
+    "dateOfBirth": "2000-07-31",
+    "gender": "Male",
+    "mobile": "+91988774455",
+    "email": "admin@gmail.com",
+    "address": "The Exhibition Center, Science Road",
+    "city": "Ahmedabad",
+    "pincode": "380009",
+    "profilePhoto": "https://example.com/uploads/profile.jpg",
+    "createdAt": "23-10-2026 02:33 pm",
+    "updatedAt": "24-10-2026 12:30 pm"
+  }
+}
+
+----------------------------------------------------------------------------------------------------
+[B] Update Admin Profile:
+Method:   PUT / POST / PATCH
+Endpoint: <<admin_base_url>>profile
+          (Full URL: http://192.168.1.49:5000/api/admin/profile)
+
+Headers:
+  Content-Type: application/json
+  Authorization: Bearer <<token>>
+
+Request Body JSON:
+{
+  "fullName": "Admin",
+  "dateOfBirth": "2000-07-31",
+  "gender": "Male",
+  "mobile": "+91988774455",
+  "address": "The Exhibition Center, Science Road",
+  "city": "Ahmedabad",
+  "pincode": "380009"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Admin profile updated successfully",
+  "data": {
+    "id": 1,
+    "fullName": "Admin",
+    "dateOfBirth": "2000-07-31",
+    "gender": "Male",
+    "mobile": "+91988774455",
+    "email": "admin@gmail.com",
+    "address": "The Exhibition Center, Science Road",
+    "city": "Ahmedabad",
+    "pincode": "380009"
+  }
+}
+
+
+====================================================================================================
+2. MEMBERS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>members
+          (Full URL: http://192.168.1.49:5000/api/admin/members)
+
+Headers:
+  Authorization: Bearer <<token>> (Optional in dev)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Members retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "memberId": "JAA-001",
+      "name": "Ramesh Patel",
+      "company": "Patel Jewellers",
+      "city": "Ahmedabad",
+      "phone": "9876543210",
+      "status": "Active"
+    }
+  ]
+}
+
+
+====================================================================================================
+3. EXECUTIVE COMMITTEE APIS
+====================================================================================================
+
+[3.1] Get All Committees
+----------------------------------------------------------------------------------------------------
+Method:   GET
+Endpoint: <<admin_base_url>>committee
+          (Full URL: http://192.168.1.49:5000/api/admin/committee)
+
+Query Parameters (Optional):
+  - search: Search by position or member name (e.g. ?search=Chairman)
+  - position: Filter by position (e.g. ?position=Chairman)
+  - page: Page number (default: 1)
+  - limit: Items per page (default: 15)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Committees retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "position": "Chairman",
+      "members": [
+        {
+          "memberId": 12,
+          "name": "Mike Ross"
+        },
+        {
+          "memberId": 15,
+          "name": "Rachel Zane"
+        },
+        {
+          "memberId": 18,
+          "name": "Harvey Specter"
+        }
+      ],
+      "totalMembers": 3,
+      "createdAt": "24-10-2026 06:13 pm",
+      "updatedAt": "24-10-2026 06:13 pm"
+    }
+  ],
+  "pagination": {
+    "total_items": 1,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 15,
+    "has_more": false
+  }
+}
+
+
+[3.2] Create Committee
+----------------------------------------------------------------------------------------------------
+Method:   POST
+Endpoint: <<admin_base_url>>committee
+          (Full URL: http://192.168.1.49:5000/api/admin/committee)
+
+Headers:
+  Content-Type:  application/json OR multipart/form-data
+  Authorization: Bearer <<token>>
+
+Request Body (Option A - JSON):
+{
+  "position": "Chairman",
+  "members": [
+    {
+      "memberId": 14
+    },
+    {
+      "memberId": 12
+    }
+  ]
+}
+
+Request Body (Option B - form-data / direct memberId):
+  position: test
+  memberId: 14   (or comma-separated: 14, 12)
+
+Response (201 Created):
+{
+  "success": true,
+  "status": true,
+  "message": "Committee created successfully",
+  "data": {
+    "id": 12,
+    "position": "Chairman",
+    "members": [
+      {
+        "memberId": 14,
+        "name": "Suresh Shah"
+      },
+      {
+        "memberId": 12,
+        "name": "Yash Soni"
+      }
+    ],
+    "totalMembers": 2,
+    "createdAt": "24-10-2026 06:21 pm",
+    "updatedAt": "24-10-2026 06:21 pm"
+  }
+}
+
+
+[3.3] Update Committee
+----------------------------------------------------------------------------------------------------
+Method:   PUT / PATCH
+Endpoint: <<admin_base_url>>committee/:id
+          (Full URL: http://192.168.1.49:5000/api/admin/committee/1)
+
+Headers:
+  Content-Type:  application/json
+  Authorization: Bearer <<token>>
+
+Request Body JSON:
+{
+  "position": "Senior Chairman",
+  "members": [
+    {
+      "memberId": 12,
+      "name": "Mike Ross"
+    },
+    {
+      "memberId": 18,
+      "name": "Harvey Specter"
+    }
+  ]
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Committee updated successfully",
+  "data": {
+    "id": 1,
+    "position": "Senior Chairman",
+    "members": [
+      {
+        "memberId": 12,
+        "name": "Mike Ross"
+      },
+      {
+        "memberId": 18,
+        "name": "Harvey Specter"
+      }
+    ],
+    "totalMembers": 2,
+    "createdAt": "24-10-2026 06:13 pm",
+    "updatedAt": "24-10-2026 06:14 pm"
+  }
+}
+
+
+[3.4] Delete Committee
+----------------------------------------------------------------------------------------------------
+Method:   DELETE
+Endpoint: <<admin_base_url>>committee/:id
+          (Full URL: http://192.168.1.49:5000/api/admin/committee/1)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Committee deleted successfully",
+  "data": {
+    "id": 1,
+    "position": "Senior Chairman",
+    "members": [
+      {
+        "memberId": 12,
+        "name": "Mike Ross"
+      },
+      {
+        "memberId": 18,
+        "name": "Harvey Specter"
+      }
+    ],
+    "totalMembers": 2,
+    "createdAt": "24-10-2026 06:13 pm",
+    "updatedAt": "24-10-2026 06:14 pm"
+  }
+}
+
+
+
+====================================================================================================
+4. EVENTS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>events
+          (Full URL: http://192.168.1.49:5000/api/admin/events)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Events retrieved successfully",
+  "data": []
+}
+
+
+[4.2] Delete Event
+----------------------------------------------------------------------------------------------------
+Method:   DELETE
+Endpoint: <<admin_base_url>>events/:id
+          (Full URL: http://192.168.1.49:5000/api/admin/events/2)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Event deleted successfully",
+  "data": {
+    "id": 2,
+    "title": "yash test",
+    "image": "/uploads/events/workshop.jpg",
+    "startDate": "2026-11-10",
+    "endDate": "2026-11-12",
+    "startTime": "10:00 AM",
+    "endTime": "07:00 PM",
+    "city": "Ahmedabad",
+    "address": "maninagar ahm",
+    "postedBy": "Admin",
+    "description": "Premier B2B jewellery exhibition for verified jewellers across Gujarat.",
+    "isActive": true,
+    "createdAt": "24-10-2026 04:23 pm",
+    "updatedAt": "24-10-2026 04:24 pm"
+  }
+}
+
+
+
+====================================================================================================
+5. GROUPS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>groups
+          (Full URL: http://192.168.1.49:5000/api/admin/groups)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Groups retrieved successfully",
+  "data": []
+}
+
+
+====================================================================================================
+6. BROADCASTS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>broadcasts
+          (Full URL: http://192.168.1.49:5000/api/admin/broadcasts)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Broadcasts retrieved successfully",
+  "data": []
+}
+
+
+====================================================================================================
+7. LEADS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>leads
+          (Full URL: http://192.168.1.49:5000/api/admin/leads)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Leads retrieved successfully",
+  "data": []
+}
+
+
+====================================================================================================
+8. COMPLAINTS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>complaints
+          (Full URL: http://192.168.1.49:5000/api/admin/complaints)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Complaints retrieved successfully",
+  "data": []
+}
+
+
+====================================================================================================
+9. POSTS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>posts
+          (Full URL: http://192.168.1.49:5000/api/admin/posts)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Posts retrieved successfully",
+  "data": []
+}
+
+
+====================================================================================================
+10. DASHBOARD STATS APIS
+====================================================================================================
+Method:   GET
+Endpoint: <<admin_base_url>>dashboard
+          (Full URL: http://192.168.1.49:5000/api/admin/dashboard)
+
+Headers:
+  Authorization: Bearer <<token>>
+
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "totalMembers": 5,
+      "pendingApprovals": 1,
+      "approvedMembers": 4,
+      "rejectedMembers": 0,
+      "totalEvents": 1,
+      "activeEvents": 1,
+      "totalLeads": 2,
+      "totalComplaints": 5,
+      "unresolvedComplaints": 4,
+      "totalGroups": 0,
+      "totalPosts": 3
+    }
+  }
+}
+
+
+====================================================================================================
+11. MEDIA UPLOAD APIS
+====================================================================================================
+Method:   POST
+Endpoint: <<admin_base_url>>upload
+          (Full URL: http://192.168.1.49:5000/api/admin/upload)
+
+Headers:
+  Content-Type: multipart/form-data
+  Authorization: Bearer <<token>>
+
+Form Fields:
+  file: (binary image/document)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "File uploaded successfully",
+  "data": {
+    "url": "/uploads/image-1792746911034.png"
+  }
+}
+====================================================================================================

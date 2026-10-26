@@ -1,0 +1,597 @@
+[
+  {
+    "v": 2,
+    "name": "JAA-Backend Admin APIs",
+    "folders": [
+      {
+        "v": 2,
+        "name": "Authentication",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Admin Login",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>login",
+            "params": [],
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "preRequestScript": "",
+            "testScript": "if (pw.response.body.token) {\n  pw.env.set(\"token\", pw.response.body.token);\n}"
+          },
+          {
+            "v": 1,
+            "name": "Admin Register",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>register",
+            "params": [],
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "preRequestScript": "",
+            "testScript": "if (pw.response.body.token) {\n  pw.env.set(\"token\", pw.response.body.token);\n}"
+          },
+          {
+            "v": 1,
+            "name": "Admin Forget Password",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>forget-password",
+            "params": [],
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"admin@gmail.com\"\n}"
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Admin Reset Password",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>reset-password",
+            "params": [],
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"admin@gmail.com\",\n  \"token\": \"your_reset_token\",\n  \"newPassword\": \"Admin@12345\",\n  \"confirmPassword\": \"Admin@12345\"\n}"
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Admin Change Password",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>change-password",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"currentPassword\": \"Admin@12345\",\n  \"newPassword\": \"AdminNew@12345\",\n  \"confirmNewPassword\": \"AdminNew@12345\"\n}"
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Admin Logout",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>logout",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Get Admin Profile",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>profile",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Update Profile",
+            "method": "PUT",
+            "endpoint": "<<admin_base_url>>profile",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"fullName\": \"Admin\",\n  \"dateOfBirth\": \"2000-07-31\",\n  \"gender\": \"Male\",\n  \"mobile\": \"+91988774455\",\n  \"address\": \"The Exhibition Center, Science Road\",\n  \"city\": \"Ahmedabad\",\n  \"pincode\": \"380009\"\n}"
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Members",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Members",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>members",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Committee",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Committee",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>committee",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Create Committee",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>committee",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"position\": \"Chairman\",\n  \"members\": [\n    {\n      \"memberId\": 14\n    },\n    {\n      \"memberId\": 12\n    }\n  ]\n}"
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Events",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Events",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>events",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          },
+          {
+            "v": 1,
+            "name": "Delete Event",
+            "method": "DELETE",
+            "endpoint": "<<admin_base_url>>events/2",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Groups",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Groups",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>groups",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Broadcasts",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Broadcasts",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>broadcasts",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Leads",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Leads",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>leads",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Complaints",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Complaints",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>complaints",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Posts",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Posts",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>posts",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Dashboard",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Get Dashboard Stats",
+            "method": "GET",
+            "endpoint": "<<admin_base_url>>dashboard",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      },
+      {
+        "v": 2,
+        "name": "Upload",
+        "folders": [],
+        "requests": [
+          {
+            "v": 1,
+            "name": "Upload Media",
+            "method": "POST",
+            "endpoint": "<<admin_base_url>>upload",
+            "params": [],
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <<token>>",
+                "active": true
+              }
+            ],
+            "auth": {
+              "authType": "bearer",
+              "token": "<<token>>",
+              "authActive": true
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "preRequestScript": "",
+            "testScript": ""
+          }
+        ]
+      }
+    ],
+    "requests": []
+  }
+]

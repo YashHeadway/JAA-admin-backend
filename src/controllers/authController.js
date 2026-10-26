@@ -1,5 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AuthService } from '../services/authService.js';
+import { TokenBlacklist } from '../models/TokenBlacklist.js';
+import { extractToken } from '../middlewares/authMiddleware.js';
 
 export const register = asyncHandler(async (req, res) => {
   const result = await AuthService.register(req.body);
@@ -12,10 +14,14 @@ export const register = asyncHandler(async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000,
   });
 
+  const userData = { ...result.user };
+  delete userData.token;
+  delete userData.accessToken;
+
   return res.status(201).json({
     success: true,
     message: 'Registration successful',
-    data: result.user,
+    data: userData,
     token: result.accessToken,
   });
 });
@@ -32,10 +38,14 @@ export const login = asyncHandler(async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000,
   });
 
+  const userData = { ...result.user };
+  delete userData.token;
+  delete userData.accessToken;
+
   return res.status(200).json({
     success: true,
     message: 'Login successful',
-    data: result.user,
+    data: userData,
     token: result.accessToken,
   });
 });
@@ -52,10 +62,14 @@ export const adminRegister = asyncHandler(async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000,
   });
 
+  const userData = { ...result.user };
+  delete userData.token;
+  delete userData.accessToken;
+
   return res.status(201).json({
     success: true,
     message: 'Registration successful',
-    data: result.user,
+    data: userData,
     token: result.accessToken,
   });
 });
@@ -72,10 +86,14 @@ export const adminLogin = asyncHandler(async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000,
   });
 
+  const userData = { ...result.user };
+  delete userData.token;
+  delete userData.accessToken;
+
   return res.status(200).json({
     success: true,
     message: 'Login successful',
-    data: result.user,
+    data: userData,
     token: result.accessToken,
   });
 });
@@ -109,9 +127,21 @@ export const getMe = asyncHandler(async (req, res) => {
 });
 
 export const logout = asyncHandler(async (req, res) => {
+  const token = extractToken(req) || req.body?.token || req.body?.accessToken;
+
+  if (token) {
+    await TokenBlacklist.blacklistToken(token, req.user);
+  }
+
+  const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
+  if (refreshToken && refreshToken !== token) {
+    await TokenBlacklist.blacklistToken(refreshToken, req.user);
+  }
+
   res.clearCookie('token');
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
+
   return res.status(200).json({
     success: true,
     message: 'Logout successful',
@@ -136,8 +166,9 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 });
 
 export const resetPassword = asyncHandler(async (req, res) => {
-  const { token, newPassword, confirmPassword } = req.body;
-  const result = await AuthService.resetPassword({ token, newPassword, confirmPassword });
+  const token = req.body?.token || req.body?.resetToken;
+  const { newPassword, confirmPassword, email } = req.body;
+  const result = await AuthService.resetPassword({ token, newPassword, confirmPassword, email });
 
   return res.status(200).json({
     success: true,

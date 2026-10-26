@@ -1,51 +1,136 @@
 import { z } from 'zod';
 
-export const COMMITTEE_GENDERS = ['Male', 'Female', 'Other'];
-export const COMMITTEE_POSITIONS = [
-  'President',
-  'Vice President',
-  'Secretary',
-  'Joint Secretary',
-  'Treasurer',
-  'Committee Member',
-];
-export const COMMITTEE_BUSINESS_TYPES = ['B2B', 'B2C'];
+const preprocessMembers = (val) => {
+  if (val === undefined || val === null || val === '') return [];
 
-export const createCommitteeSchema = z
-  .object({
-    fullName: z.string().trim().min(2, 'Full name is required'),
-    dateOfBirth: z.string().min(1, 'Date of birth is required'),
-    gender: z.enum(COMMITTEE_GENDERS, {
-      errorMap: () => ({ message: "Gender must be 'Male', 'Female', or 'Other'" }),
-    }),
-    mobile: z.string().trim().min(8, 'Mobile number is required'),
-    email: z.string().trim().email('Valid email address is required'),
-    address: z.string().trim().min(2, 'Address is required'),
-    position: z.enum(COMMITTEE_POSITIONS, {
-      errorMap: () => ({
-        message:
-          "Position must be 'President', 'Vice President', 'Secretary', 'Joint Secretary', 'Treasurer', or 'Committee Member'",
-      }),
-    }),
-    role: z.string().optional().default('Committee Member'),
-    businessName: z.string().trim().min(2, 'Business name is required'),
-    businessType: z.enum(COMMITTEE_BUSINESS_TYPES, {
-      errorMap: () => ({ message: "Business type must be 'B2B' or 'B2C'" }),
-    }),
-    gstNumber: z.string().optional().default(''),
-  });
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return [];
 
-export const updateCommitteeSchema = z
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => {
+            if (typeof item === 'number' || typeof item === 'string') {
+              return { memberId: Number(item) };
+            }
+            return item;
+          });
+        }
+        if (typeof parsed === 'object' && parsed !== null) {
+          return [parsed];
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+
+    if (trimmed.includes(',')) {
+      return trimmed
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => ({ memberId: Number(s) }));
+    }
+
+    if (!isNaN(Number(trimmed))) {
+      return [{ memberId: Number(trimmed) }];
+    }
+
+    return [{ memberId: trimmed }];
+  }
+
+  if (typeof val === 'number') {
+    return [{ memberId: val }];
+  }
+
+  if (Array.isArray(val)) {
+    return val.map((item) => {
+      if (typeof item === 'number' || typeof item === 'string') {
+        return { memberId: Number(item) };
+      }
+      return item;
+    });
+  }
+
+  if (typeof val === 'object' && val !== null) {
+    return [val];
+  }
+
+  return val;
+};
+
+const normalizeCommitteeBody = (body) => {
+  if (!body || typeof body !== 'object') return body;
+  const clone = { ...body };
+
+  const hasMembers =
+    clone.members !== undefined &&
+    clone.members !== null &&
+    clone.members !== '' &&
+    !(Array.isArray(clone.members) && clone.members.length === 0);
+
+  if (!hasMembers) {
+    if (clone.memberId !== undefined && clone.memberId !== null && clone.memberId !== '') {
+      clone.members = clone.memberId;
+    } else if (clone.memberIds !== undefined && clone.memberIds !== null && clone.memberIds !== '') {
+      clone.members = clone.memberIds;
+    }
+  }
+
+  return clone;
+};
+
+const memberItemSchema = z
   .object({
-    fullName: z.string().trim().min(2).optional(),
+    memberId: z.coerce.number({
+      required_error: 'memberId is required',
+      invalid_type_error: 'memberId must be a valid number',
+    }),
+    name: z.string().trim().optional(),
+  })
+  .passthrough();
+
+const baseCreateCommitteeSchema = z
+  .object({
+    position: z.string().trim().min(1, 'Position is required'),
+    memberId: z.union([z.number(), z.string(), z.array(z.union([z.number(), z.string()]))]).optional(),
+    memberIds: z.union([z.number(), z.string(), z.array(z.union([z.number(), z.string()]))]).optional(),
+    members: z.preprocess(preprocessMembers, z.array(memberItemSchema).optional().default([])),
+    fullName: z.string().trim().optional(),
     dateOfBirth: z.string().optional(),
-    gender: z.enum(COMMITTEE_GENDERS).optional(),
-    mobile: z.string().trim().min(8).optional(),
-    email: z.string().trim().email().optional(),
-    address: z.string().trim().min(2).optional(),
-    position: z.enum(COMMITTEE_POSITIONS).optional(),
+    gender: z.string().optional(),
+    mobile: z.string().optional(),
+    email: z.string().optional(),
+    address: z.string().optional(),
     role: z.string().optional(),
-    businessName: z.string().trim().min(2).optional(),
-    businessType: z.enum(COMMITTEE_BUSINESS_TYPES).optional(),
+    businessName: z.string().optional(),
+    businessType: z.string().optional(),
     gstNumber: z.string().optional(),
-  });
+  })
+  .passthrough();
+
+export const createCommitteeSchema = z.preprocess(normalizeCommitteeBody, baseCreateCommitteeSchema);
+
+const baseUpdateCommitteeSchema = z
+  .object({
+    position: z.string().trim().min(1).optional(),
+    memberId: z.union([z.number(), z.string(), z.array(z.union([z.number(), z.string()]))]).optional(),
+    memberIds: z.union([z.number(), z.string(), z.array(z.union([z.number(), z.string()]))]).optional(),
+    members: z.preprocess(preprocessMembers, z.array(memberItemSchema).optional()),
+    addMembers: z.preprocess(preprocessMembers, z.array(memberItemSchema).optional()),
+    fullName: z.string().trim().optional(),
+    dateOfBirth: z.string().optional(),
+    gender: z.string().optional(),
+    mobile: z.string().optional(),
+    email: z.string().optional(),
+    address: z.string().optional(),
+    role: z.string().optional(),
+    businessName: z.string().optional(),
+    businessType: z.string().optional(),
+    gstNumber: z.string().optional(),
+  })
+  .passthrough();
+
+export const updateCommitteeSchema = z.preprocess(normalizeCommitteeBody, baseUpdateCommitteeSchema);

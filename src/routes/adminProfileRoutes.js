@@ -22,4 +22,10 @@ router
   .patch(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
   .post(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
 
+router
+  .route(['/update-profile', '/updateProfile', '/admin-update-profile', '/adminUpdateProfile'])
+  .post(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
+  .put(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
+  .patch(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+
 export default router;

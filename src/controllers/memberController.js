@@ -32,7 +32,12 @@ export const updateMemberStatus = asyncHandler(async (req, res) => {
   const effectiveReason = rejectionReason !== undefined ? rejectionReason : (reason || '');
   const updated = await MemberService.updateStatus(id, status, effectiveReason);
 
-  return res.status(200).json(updated);
+  return res.status(200).json({
+    success: true,
+    status: true,
+    message: 'Member status updated successfully',
+    data: updated,
+  });
 });
 
 export const updateMember = asyncHandler(async (req, res) => {
@@ -41,6 +46,7 @@ export const updateMember = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
+    status: true,
     message: 'Member updated successfully',
     data: updated,
   });
@@ -52,6 +58,7 @@ export const deleteMember = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
+    status: true,
     message: 'Member deleted successfully',
     data: deleted,
   });
@@ -59,5 +66,10 @@ export const deleteMember = asyncHandler(async (req, res) => {
 
 export const createMember = asyncHandler(async (req, res) => {
   const created = await MemberService.createMember(req.body);
-  return res.status(201).json(created);
+  return res.status(201).json({
+    success: true,
+    status: true,
+    message: 'Member created successfully',
+    data: created,
+  });
 });

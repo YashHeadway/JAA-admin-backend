@@ -36,6 +36,7 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   const updated = await ComplaintService.updateStatus(id, req.body);
   return res.status(200).json({
     success: true,
+    status: true,
     message: 'Complaint updated successfully',
     data: updated,
   });
@@ -45,6 +46,7 @@ export const deleteComplaint = asyncHandler(async (req, res) => {
   const deleted = await ComplaintService.deleteComplaint(req.params.id);
   return res.status(200).json({
     success: true,
+    status: true,
     message: 'Complaint deleted successfully',
     data: {
       complaintId: deleted.complaintId !== undefined && !isNaN(Number(deleted.complaintId)) ? Number(deleted.complaintId) : (deleted.id || 1),

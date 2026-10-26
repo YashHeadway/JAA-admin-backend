@@ -11,16 +11,121 @@ import postRoutes from './postRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 import adminProfileRoutes from './adminProfileRoutes.js';
+import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = Router();
+
+/**
+ * Determine if an incoming route is public (auth/recovery/discovery)
+ * and therefore does not require an active login session.
+ */
+const isPublicRoute = (req) => {
+  const rawPath = (req.path || '').toLowerCase();
+  const rawUrl = (req.originalUrl || req.url || '').split('?')[0].toLowerCase();
+
+  // Root discovery & health endpoints
+  if (
+    rawPath === '' ||
+    rawPath === '/' ||
+    rawPath === '/admin' ||
+    rawPath === '/admin/' ||
+    rawPath === '/health' ||
+    rawUrl === '/api' ||
+    rawUrl === '/api/' ||
+    rawUrl === '/api/admin' ||
+    rawUrl === '/api/admin/' ||
+    rawUrl === '/health' ||
+    rawUrl === '/api/health'
+  ) {
+    return true;
+  }
+
+  // Static assets for password reset page
+  if (rawPath.includes('/assets/') || rawUrl.includes('/assets/')) {
+    return true;
+  }
+
+  // Public authentication & password recovery endpoints
+  const publicKeywords = [
+    'login',
+    'adminlogin',
+    'admin-login',
+    'register',
+    'adminregister',
+    'admin-register',
+    'signup',
+    'admin-signup',
+    'adminsignup',
+    'forgot-password',
+    'forget-password',
+    'forgotpassword',
+    'forgetpassword',
+    'reset-password',
+    'resetpassword',
+    'refresh-token',
+    'refreshtoken',
+    'logout',
+    'adminlogout',
+    'admin-logout',
+  ];
+
+  return publicKeywords.some((keyword) => {
+    return (
+      rawPath === `/${keyword}` ||
+      rawPath.endsWith(`/${keyword}`) ||
+      rawUrl === `/${keyword}` ||
+      rawUrl.endsWith(`/${keyword}`)
+    );
+  });
+};
+
+/**
+ * STRICT GLOBAL AUTHENTICATION GUARD:
+ * Ensures that once a user logs out, or if a user is not logged in,
+ * they CANNOT access any API data. Any attempt to access data without
+ * an active login session returns 401 Unauthorized:
+ * "You are not authenticated, please login first".
+ */
+router.use((req, res, next) => {
+  if (isPublicRoute(req)) {
+    return next();
+  }
+  return authenticate(req, res, next);
+});
 
 // Version 1 API routes
 // Auth routes mounted at /auth and root for direct /api/login and /api/register endpoints
 router.use('/auth', authRoutes);
 router.use('/', authRoutes);
 
+// Admin prefixed route group (supports <<admin_base_url>> e.g. http://192.168.1.49:5000/api/admin/)
+router.use(['/admin/auth', '/admin/admin/auth'], authRoutes);
+router.use(['/admin', '/admin/admin'], authRoutes);
+router.use(['/admin/members', '/admin/admin/members'], memberRoutes);
+router.use(['/admin/committee', '/admin/admin/committee'], committeeRoutes);
+router.use(['/admin/events', '/admin/admin/events'], eventRoutes);
+router.use(['/admin/groups', '/admin/admin/groups'], groupRoutes);
+router.use(['/admin/broadcasts', '/admin/admin/broadcasts'], broadcastRoutes);
+router.use(['/admin/leads', '/admin/admin/leads'], leadRoutes);
+router.use(['/admin/complaints', '/admin/admin/complaints'], complaintRoutes);
+router.use(['/admin/posts', '/admin/admin/posts'], postRoutes);
+router.use(['/admin/dashboard', '/admin/admin/dashboard'], dashboardRoutes);
+router.use(['/admin/upload', '/admin/admin/upload'], uploadRoutes);
+router.use(['/admin/admin-profile', '/admin/admin/admin-profile'], adminProfileRoutes);
+router.use(['/admin/profile', '/admin/admin/profile'], adminProfileRoutes);
+router.use(['/admin/update-profile', '/admin/admin/update-profile'], adminProfileRoutes);
+router.use(['/admin/updateProfile', '/admin/admin/updateProfile'], adminProfileRoutes);
+router.use(['/admin/admin-update-profile', '/admin/admin/admin-update-profile'], adminProfileRoutes);
+router.use(['/admin/adminUpdateProfile', '/admin/admin/adminUpdateProfile'], adminProfileRoutes);
+
+// Direct root route groups (e.g. /api/members, /api/committee, etc.)
 router.use('/admin-profile', adminProfileRoutes);
 router.use('/admin/profile', adminProfileRoutes);
+router.use('/profile', adminProfileRoutes);
+router.use('/update-profile', adminProfileRoutes);
+router.use('/updateProfile', adminProfileRoutes);
+router.use('/admin-update-profile', adminProfileRoutes);
+router.use('/adminUpdateProfile', adminProfileRoutes);
 router.use('/members', memberRoutes);
 router.use('/committee', committeeRoutes);
 router.use('/events', eventRoutes);
@@ -32,41 +137,48 @@ router.use('/posts', postRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/upload', uploadRoutes);
 
-// Root API discovery endpoint
-router.get('/', (req, res) => {
+// Root API discovery endpoint (accessible at /api, /api/admin, and /api/admin/)
+router.get(['/', '/admin', '/admin/'], (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Welcome to JAA Backend REST API',
+    message: 'Welcome to JAA Admin REST API',
     version: '1.0.0',
     documentation: {
-      auth: {
-        adminLogin: '/api/admin-login (or /api/auth/admin-login)',
-        adminRegister: '/api/admin-register (or /api/auth/admin-register)',
-        login: '/api/login (or /api/auth/login)',
-        register: '/api/register (or /api/auth/register)',
-        refreshToken: '/api/refresh-token (or /api/auth/refresh-token)',
-        me: '/api/me (or /api/auth/me)',
-        logout: '/api/logout (or /api/auth/logout)',
-        forgotPassword: '/api/forgot-password (or /api/auth/forgot-password)',
-        resetPassword: '/api/reset-password (or /api/auth/reset-password)',
-        changePassword: '/api/change-password (or /api/auth/change-password)',
-        adminProfile: '/api/admin-profile (or /api/auth/admin-profile)',
+      adminRoutes: {
+        members: '/admin/members',
+        committee: '/admin/committee',
+        events: '/admin/events',
+        groups: '/admin/groups',
+        broadcasts: '/admin/broadcasts',
+        leads: '/admin/leads',
+        complaints: '/admin/complaints',
+        posts: '/admin/posts',
+        dashboard: '/admin/dashboard',
+        upload: '/admin/upload',
+        auth: {
+          adminLogin: '/admin/login',
+          adminRegister: '/admin/register',
+          adminForgetPassword: '/admin/forget-password',
+          adminResetPassword: '/admin/reset-password',
+          adminChangePassword: '/admin/change-password',
+          adminLogout: '/admin/logout',
+          adminProfile: '/admin/profile',
+        },
       },
-
-      adminProfile: '/api/admin-profile',
-      members: '/api/members',
-      committee: '/api/committee',
-      events: '/api/events',
-      groups: '/api/groups',
-      broadcasts: '/api/broadcasts',
-      leads: '/api/leads',
-      complaints: '/api/complaints',
-      posts: '/api/posts',
-      dashboard: '/api/dashboard',
-      upload: '/api/upload',
+      userRoutes: {
+        members: '/members',
+        committee: '/committee',
+        events: '/events',
+        groups: '/groups',
+        broadcasts: '/broadcasts',
+        leads: '/leads',
+        complaints: '/complaints',
+        posts: '/posts',
+        dashboard: '/dashboard',
+        upload: '/upload',
+      },
     },
   });
 });
 
 export default router;
-

@@ -115,19 +115,29 @@ export class MemberService {
   }
 
   static async createMember(memberData) {
-    const id = await getNextSequence('members');
+    let id = await getNextSequence('members');
     const rejectionReason = memberData.rejectionReason !== undefined
       ? memberData.rejectionReason
       : (memberData.reason !== undefined ? memberData.reason : '');
 
-    const newMember = await Member.create({
-      id,
-      membershipId: memberData.membershipId || `JBAD${150 + id}`,
+    const buildPayload = (assignedId) => ({
+      id: assignedId,
+      membershipId: memberData.membershipId || `JBAD${150 + assignedId}`,
       joinedOn: formatDateOnly(memberData.joinedOn || new Date()),
       status: memberData.status || 'pending',
       ...memberData,
       rejectionReason,
     });
-    return newMember;
+
+    try {
+      const newMember = await Member.create(buildPayload(id));
+      return newMember;
+    } catch (err) {
+      if (err.code === 11000) {
+        id = await getNextSequence('members');
+        return await Member.create(buildPayload(id));
+      }
+      throw err;
+    }
   }
 }

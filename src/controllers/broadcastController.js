@@ -14,5 +14,10 @@ export const getBroadcasts = asyncHandler(async (req, res) => {
 
 export const createBroadcast = asyncHandler(async (req, res) => {
   const created = await BroadcastService.createBroadcast(req.body);
-  return res.status(201).json(created);
+  return res.status(201).json({
+    success: true,
+    status: true,
+    message: 'Broadcast created successfully',
+    data: created,
+  });
 });

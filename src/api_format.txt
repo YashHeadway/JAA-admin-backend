@@ -67,31 +67,42 @@ Description: Returns directory of all available route groups and endpoints.
 Response (200 OK):
 {
   "success": true,
-  "message": "Welcome to JAA Backend REST API",
+  "message": "Welcome to JAA Admin REST API",
   "version": "1.0.0",
   "documentation": {
-    "auth": {
-      "adminLogin": "/api/admin-login (or /api/auth/admin-login)",
-      "adminRegister": "/api/admin-register (or /api/auth/admin-register)",
-      "login": "/api/login (or /api/auth/login)",
-      "register": "/api/register (or /api/auth/register)",
-      "refreshToken": "/api/refresh-token (or /api/auth/refresh-token)",
-      "me": "/api/me (or /api/auth/me)",
-      "logout": "/api/logout (or /api/auth/logout)",
-      "forgotPassword": "/api/forgot-password (or /api/auth/forgot-password)",
-      "resetPassword": "/api/reset-password (or /api/auth/reset-password)",
-      "changePassword": "/api/change-password (or /api/auth/change-password)"
+    "adminRoutes": {
+      "members": "/admin/members",
+      "committee": "/admin/committee",
+      "events": "/admin/events",
+      "groups": "/admin/groups",
+      "broadcasts": "/admin/broadcasts",
+      "leads": "/admin/leads",
+      "complaints": "/admin/complaints",
+      "posts": "/admin/posts",
+      "dashboard": "/admin/dashboard",
+      "upload": "/admin/upload",
+      "auth": {
+        "adminLogin": "/admin/login",
+        "adminRegister": "/admin/register",
+        "adminForgetPassword": "/admin/forget-password",
+        "adminResetPassword": "/admin/reset-password",
+        "adminChangePassword": "/admin/change-password",
+        "adminLogout": "/admin/logout",
+        "adminProfile": "/admin/profile"
+      }
     },
-    "members": "/api/members",
-    "committee": "/api/committee",
-    "events": "/api/events",
-    "groups": "/api/groups",
-    "broadcasts": "/api/broadcasts",
-    "leads": "/api/leads",
-    "complaints": "/api/complaints",
-    "posts": "/api/posts",
-    "dashboard": "/api/dashboard",
-    "upload": "/api/upload"
+    "userRoutes": {
+      "members": "/members",
+      "committee": "/committee",
+      "events": "/events",
+      "groups": "/groups",
+      "broadcasts": "/broadcasts",
+      "leads": "/leads",
+      "complaints": "/complaints",
+      "posts": "/posts",
+      "dashboard": "/dashboard",
+      "upload": "/upload"
+    }
   }
 }
 

@@ -118,23 +118,26 @@ export const formatDateOnly = (value, timeZone = 'Asia/Kolkata') => {
  * @param {any} obj 
  * @returns {any}
  */
-export const formatTimestamps = (obj) => {
+export const formatTimestamps = (obj, seen = new WeakSet()) => {
   if (!obj || typeof obj !== 'object') return obj;
+  if (seen.has(obj)) return obj;
+  seen.add(obj);
 
   if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
-      formatTimestamps(obj[i]);
+      formatTimestamps(obj[i], seen);
     }
     return obj;
   }
 
   for (const key of Object.keys(obj)) {
+    if (key.startsWith('$') || key === '_doc') continue;
     if ((key === 'createdAt' || key === 'updatedAt') && obj[key]) {
       obj[key] = formatDateTime(obj[key]);
     } else if ((key === 'joinedOn' || key === 'createdOn') && obj[key]) {
       obj[key] = formatDateOnly(obj[key]);
     } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-      formatTimestamps(obj[key]);
+      formatTimestamps(obj[key], seen);
     }
   }
 
