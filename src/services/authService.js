@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { User } from '../models/User.js';
 import { AdminUser } from '../models/AdminUser.js';
+import { AdminProfile } from '../models/AdminProfile.js';
 import { ApiError } from '../utils/apiError.js';
 import { getNextSequence } from '../models/Counter.js';
 import { emailService } from './emailService.js';
@@ -95,6 +96,34 @@ export class AuthService {
       pincode: pincode || '',
       avatar: avatar || '',
     });
+
+    // If user role is Admin, automatically ensure their AdminProfile is created
+    const roleLower = (newUser.role || '').trim().toLowerCase();
+    if (roleLower === 'admin' || roleLower === 'super admin') {
+      try {
+        await AdminProfile.findOneAndUpdate(
+          { email: normalizedEmail },
+          {
+            $setOnInsert: {
+              id: newUser.id,
+              userId: newUser.id,
+              name: newUser.name,
+              fullName: newUser.name,
+              email: normalizedEmail,
+              phone: (newUser.mobile || '').trim(),
+              mobile: (newUser.mobile || '').trim(),
+              role: 'admin',
+              avatar: null,
+              profilePhoto: null,
+              isActive: true,
+            },
+          },
+          { upsert: true, new: true }
+        );
+      } catch (profErr) {
+        logger.warn(`Failed to auto-create AdminProfile for ${normalizedEmail}: ${profErr.message}`);
+      }
+    }
 
     const tokens = this.generateTokens(newUser);
     const userObj = newUser.toObject();
@@ -200,7 +229,8 @@ export class AuthService {
   /**
    * Register a new admin account in admin-users table with only email and password.
    */
-  static async adminRegister({ email, password }) {
+  static async adminRegister(adminData) {
+    const { email, password, name, fullName, phone, mobile } = adminData || {};
     if (!email || !password) {
       throw ApiError.badRequest('Email and password are required');
     }
@@ -223,17 +253,49 @@ export class AuthService {
       .split('@')[0]
       .replace(/[._-]/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
-    const finalName = defaultName.toLowerCase() === 'admin' ? 'Admin' : defaultName || 'Admin';
+    const finalName = (name || fullName || '').trim() || (defaultName.toLowerCase() === 'admin' ? 'Admin' : defaultName || 'Admin');
+    const finalPhone = (phone || mobile || '').trim();
 
-    // Stores data provided in the API + sequential id and role
+    // Stores credentials in admin-users
     const newAdmin = await AdminUser.create({
       id,
       name: finalName,
+      fullName: finalName,
       email: normalizedEmail,
       password,
-      role: 'Admin',
+      role: 'admin',
+      mobile: finalPhone,
+      phone: finalPhone,
+      avatar: null,
+      profilePhoto: null,
+      isActive: true,
+      status: 'active',
     });
 
+    // Automatically create corresponding AdminProfile with admin credentials & empty other data
+    try {
+      await AdminProfile.findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+          $setOnInsert: {
+            id: newAdmin.id,
+            userId: newAdmin.id,
+            name: finalName,
+            fullName: finalName,
+            email: normalizedEmail,
+            phone: finalPhone,
+            mobile: finalPhone,
+            role: 'admin',
+            avatar: null,
+            profilePhoto: null,
+            isActive: true,
+          },
+        },
+        { upsert: true, new: true }
+      );
+    } catch (profErr) {
+      logger.warn(`Failed to auto-create AdminProfile for ${normalizedEmail}: ${profErr.message}`);
+    }
 
     const tokens = this.generateTokens(newAdmin);
     const adminObj = newAdmin.toObject();

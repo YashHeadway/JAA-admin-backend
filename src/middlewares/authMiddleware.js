@@ -4,17 +4,21 @@ import { ApiError } from '../utils/apiError.js';
 import { User } from '../models/User.js';
 import { TokenBlacklist } from '../models/TokenBlacklist.js';
 
-const UNAUTHENTICATED_MESSAGE = 'You are not authenticated, please login first';
+const UNAUTHENTICATED_MESSAGE = 'Authentication required';
 
 /**
  * Extract token from Authorization Bearer header or cookies
  */
 export const extractToken = (req) => {
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-    return req.headers.authorization.split(' ')[1].trim();
+  if (req.headers?.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    const bearerToken = req.headers.authorization.split(' ')[1]?.trim();
+    if (bearerToken) return bearerToken;
   }
-  if (req.cookies && (req.cookies.accessToken || req.cookies.token)) {
-    return (req.cookies.accessToken || req.cookies.token).trim();
+  if (req.cookies) {
+    const cookieToken = req.cookies.token || req.cookies.accessToken;
+    if (cookieToken && typeof cookieToken === 'string' && cookieToken.trim()) {
+      return cookieToken.trim();
+    }
   }
   return null;
 };
@@ -32,9 +36,13 @@ export const authenticate = async (req, res, next) => {
     }
 
     // Check if token has been revoked / logged out
-    const isRevoked = await TokenBlacklist.isBlacklisted(token);
-    if (isRevoked) {
-      return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+    try {
+      const isRevoked = await TokenBlacklist.isBlacklisted(token);
+      if (isRevoked) {
+        return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+      }
+    } catch (dbErr) {
+      return next(dbErr);
     }
 
     // Support mock token from client project development mode
@@ -42,26 +50,37 @@ export const authenticate = async (req, res, next) => {
       const admin =
         (await User.findOne({ email: 'admin@gmail.com' })) ||
         (await User.findOne({ email: 'harveyspecter@gmail.com' }));
-      req.user = admin || {
-        id: 1,
-        name: 'Admin',
-        email: 'admin@gmail.com',
-        role: 'Admin',
-      };
+      req.user = admin
+        ? {
+            id: admin.id || admin._id,
+            name: admin.name || admin.fullName,
+            email: admin.email,
+            role: admin.role,
+          }
+        : {
+            id: 1,
+            name: 'Admin',
+            email: 'admin@gmail.com',
+            role: 'Admin',
+          };
       return next();
     }
 
-    // Verify JWT
+    // Verify JWT signature and expiration
     jwt.verify(token, env.JWT_SECRET, (err, decoded) => {
       if (err) {
+        return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+      }
+
+      if (!decoded || (decoded.id === undefined && decoded._id === undefined)) {
         return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
       }
 
       req.user = decoded;
       next();
     });
-  } catch {
-    next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -80,9 +99,13 @@ export const authenticateOptional = async (req, res, next) => {
     }
 
     // If client supplied a token to authorize, it MUST NOT be blacklisted/logged out
-    const isRevoked = await TokenBlacklist.isBlacklisted(token);
-    if (isRevoked) {
-      return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+    try {
+      const isRevoked = await TokenBlacklist.isBlacklisted(token);
+      if (isRevoked) {
+        return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+      }
+    } catch (dbErr) {
+      return next(dbErr);
     }
 
     // Support mock token from client project development mode
@@ -90,12 +113,19 @@ export const authenticateOptional = async (req, res, next) => {
       const admin =
         (await User.findOne({ email: 'admin@gmail.com' })) ||
         (await User.findOne({ email: 'harveyspecter@gmail.com' }));
-      req.user = admin || {
-        id: 1,
-        name: 'Admin',
-        email: 'admin@gmail.com',
-        role: 'Admin',
-      };
+      req.user = admin
+        ? {
+            id: admin.id || admin._id,
+            name: admin.name || admin.fullName,
+            email: admin.email,
+            role: admin.role,
+          }
+        : {
+            id: 1,
+            name: 'Admin',
+            email: 'admin@gmail.com',
+            role: 'Admin',
+          };
       return next();
     }
 
@@ -108,8 +138,8 @@ export const authenticateOptional = async (req, res, next) => {
       req.user = decoded;
       next();
     });
-  } catch {
-    next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -119,12 +149,18 @@ export const authorize = (...allowedRoles) => {
       return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
     }
 
-    if (allowedRoles.length && !allowedRoles.includes(req.user.role)) {
-      return next(
-        ApiError.forbidden(`Role '${req.user.role}' is not authorized to access this resource.`)
-      );
+    const userRole = req.user.role;
+    const normalizedUserRole = typeof userRole === 'string' ? userRole.trim().toLowerCase() : '';
+    const isAllowed =
+      allowedRoles.length === 0 ||
+      allowedRoles.some((role) => role.trim().toLowerCase() === normalizedUserRole);
+
+    if (!isAllowed) {
+      return next(ApiError.forbidden('Access denied'));
     }
 
     next();
   };
 };
+
+export const authorizeAdmin = authorize('Admin', 'Super Admin');

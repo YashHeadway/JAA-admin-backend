@@ -7,14 +7,19 @@ export const errorHandler = (err, req, res, next) => {
 
   if (!(error instanceof ApiError)) {
     const statusCode = error.statusCode || (error.name === 'ValidationError' ? 400 : 500);
-    const message = error.message || 'Internal Server Error';
+    const message =
+      statusCode >= 500 && env.isProd
+        ? 'Internal server error'
+        : (error.message || 'Internal server error');
     error = new ApiError(statusCode, message, error.errors || [], err.stack);
+  } else if (error.statusCode >= 500 && env.isProd) {
+    error.message = 'Internal server error';
   }
 
   // Build clean error response
   const response = {
     success: false,
-    message: error.message,
+    message: error.message === 'Internal Server Error' ? 'Internal server error' : error.message,
     ...(error.errors && error.errors.length > 0 && { errors: error.errors }),
     ...(env.isDev && error.statusCode >= 500 && { stack: error.stack }),
   };

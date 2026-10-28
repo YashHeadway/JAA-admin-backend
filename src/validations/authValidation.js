@@ -24,6 +24,15 @@ export const adminAuthSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const adminRegisterSchema = z.object({
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+  name: z.string().trim().optional(),
+  fullName: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  mobile: z.string().trim().optional(),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
 });

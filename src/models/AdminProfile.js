@@ -6,62 +6,31 @@ const adminProfileSchema = new mongoose.Schema(
   {
     id: { type: Number, unique: true, index: true },
     userId: { type: Number, index: true },
-    fullName: { type: String, required: true, trim: true, default: 'Harvey Specter' },
-    dateOfBirth: { type: String, required: true, default: '2000-07-31' },
+    name: { type: String, default: '' },
+    fullName: { type: String, default: '' },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    phone: { type: String, default: '' },
+    mobile: { type: String, default: '' },
+    role: { type: String, default: 'admin' },
+    dateOfBirth: { type: String, default: '' },
+    dob: { type: String, default: '' },
     gender: {
       type: String,
-      required: true,
-      enum: ['Male', 'Female', 'Other'],
-      default: 'Male',
+      default: '',
     },
-    mobile: { type: String, required: true, default: '+91988774455' },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true, default: 'admin@gmail.com' },
-    address: { type: String, required: true, default: 'The Exhibition Center, Science Road' },
-    city: { type: String, required: true, default: 'Ahmedabad' },
-    pincode: { type: String, required: true, default: '380009' },
-    profilePhoto: { type: String, default: 'https://example.com/uploads/profile.jpg' },
+    address: { type: String, default: '' },
+    city: { type: String, default: '' },
+    pincode: { type: String, default: '' },
+    avatar: { type: String, default: null },
+    profilePhoto: { type: String, default: null },
+    isActive: { type: Boolean, default: true },
+    status: { type: String, default: 'active' },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   {
     timestamps: true,
     collection: 'admin_profiles',
-    toJSON: {
-      virtuals: false,
-      transform: (doc, ret) => {
-        return {
-          id: ret.id,
-          fullName: ret.fullName,
-          dateOfBirth: ret.dateOfBirth,
-          gender: ret.gender,
-          mobile: ret.mobile,
-          email: ret.email,
-          address: ret.address,
-          city: ret.city,
-          pincode: ret.pincode,
-          profilePhoto: ret.profilePhoto,
-          createdAt: ret.createdAt ? formatDateTime(ret.createdAt) : undefined,
-          updatedAt: ret.updatedAt ? formatDateTime(ret.updatedAt) : undefined,
-        };
-      },
-    },
-    toObject: {
-      virtuals: false,
-      transform: (doc, ret) => {
-        return {
-          id: ret.id,
-          fullName: ret.fullName,
-          dateOfBirth: ret.dateOfBirth,
-          gender: ret.gender,
-          mobile: ret.mobile,
-          email: ret.email,
-          address: ret.address,
-          city: ret.city,
-          pincode: ret.pincode,
-          profilePhoto: ret.profilePhoto,
-          createdAt: ret.createdAt ? formatDateTime(ret.createdAt) : undefined,
-          updatedAt: ret.updatedAt ? formatDateTime(ret.updatedAt) : undefined,
-        };
-      },
-    },
   }
 );
 
@@ -78,4 +47,5 @@ adminProfileSchema.pre('save', async function () {
 });
 
 export const AdminProfile =
-  mongoose.models.AdminProfile || mongoose.model('AdminProfile', adminProfileSchema, 'admin_profiles');
+  mongoose.models.AdminProfile ||
+  mongoose.model('AdminProfile', adminProfileSchema, 'admin_profiles');

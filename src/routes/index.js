@@ -11,6 +11,7 @@ import postRoutes from './postRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 import adminProfileRoutes from './adminProfileRoutes.js';
+import adminRoutes from './admin.routes.js';
 import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -98,6 +99,9 @@ router.use((req, res, next) => {
 router.use('/auth', authRoutes);
 router.use('/', authRoutes);
 
+// Admin dedicated routes (GET /api/admin/profile)
+router.use(['/admin', '/admin/admin'], adminRoutes);
+
 // Admin prefixed route group (supports <<admin_base_url>> e.g. http://192.168.1.49:5000/api/admin/)
 router.use(['/admin/auth', '/admin/admin/auth'], authRoutes);
 router.use(['/admin', '/admin/admin'], authRoutes);
@@ -119,6 +123,7 @@ router.use(['/admin/admin-update-profile', '/admin/admin/admin-update-profile'],
 router.use(['/admin/adminUpdateProfile', '/admin/admin/adminUpdateProfile'], adminProfileRoutes);
 
 // Direct root route groups (e.g. /api/members, /api/committee, etc.)
+router.use('/profiles', adminProfileRoutes);
 router.use('/admin-profile', adminProfileRoutes);
 router.use('/admin/profile', adminProfileRoutes);
 router.use('/profile', adminProfileRoutes);

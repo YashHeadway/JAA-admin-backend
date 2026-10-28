@@ -19,6 +19,7 @@ import {
   loginSchema,
   registerSchema,
   adminAuthSchema,
+  adminRegisterSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
@@ -29,12 +30,12 @@ import adminProfileRoutes from './adminProfileRoutes.js';
 
 const router = Router();
 
-// Admin dedicated authentication (expects email and password only)
+// Admin dedicated authentication
 router.post(
   ['/admin/register', '/admin/signup', '/admin-register', '/admin-signup'],
   authRateLimiter,
   handleFormData(),
-  validate(adminAuthSchema),
+  validate(adminRegisterSchema),
   adminRegister
 );
 router.post(

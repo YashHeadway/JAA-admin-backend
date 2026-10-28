@@ -1,31 +1,44 @@
 import { Router } from 'express';
-import { getAdminProfile, updateAdminProfile } from '../controllers/adminProfileController.js';
-import { authenticateOptional } from '../middlewares/authMiddleware.js';
+import {
+  getAdminProfile,
+  getAllAdminProfiles,
+  updateAdminProfile,
+} from '../controllers/adminProfileController.js';
+import { authenticate, authorize } from '../middlewares/authMiddleware.js';
 import { handleFormData } from '../middlewares/uploadMiddleware.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 import { updateAdminProfileSchema } from '../validations/adminProfileValidation.js';
 
 const router = Router();
 
-// Support both /api/admin-profile and /api/admin-profile/:id (e.g. /api/admin-profile/1)
-router
-  .route('/')
-  .get(authenticateOptional, getAdminProfile)
-  .put(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .patch(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .post(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+// Middleware sequence: Authentication -> Admin Authorization -> Controller
+const adminAuthGuard = [authenticate, authorize('Admin', 'Super Admin')];
 
-router
-  .route('/:id')
-  .get(authenticateOptional, getAdminProfile)
-  .put(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .patch(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .post(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+// All admin profiles endpoints
+router.get(
+  ['/all', '/profile/all', '/list', '/profile/list', '/profiles'],
+  ...adminAuthGuard,
+  getAllAdminProfiles
+);
 
+// Single profile endpoints (authenticated user's profile)
+router.get(['/', '/profile'], ...adminAuthGuard, getAdminProfile);
+
+// Specific profile endpoint by ID or MongoDB _id
+router.get(['/:id', '/profile/:id'], ...adminAuthGuard, getAdminProfile);
+
+// Update endpoints
+router
+  .route(['/', '/profile', '/:id', '/profile/:id'])
+  .put(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
+  .patch(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
+  .post(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+
+// Alias update paths
 router
   .route(['/update-profile', '/updateProfile', '/admin-update-profile', '/adminUpdateProfile'])
-  .post(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .put(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .patch(authenticateOptional, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+  .post(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
+  .put(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
+  .patch(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
 
 export default router;

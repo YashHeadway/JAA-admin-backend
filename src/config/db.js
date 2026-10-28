@@ -88,6 +88,24 @@ const ensureCollectionsAndAdmin = async () => {
       { upsert: true }
     );
 
+    // Synchronize Counter sequence for admin_profiles
+    const { AdminProfile } = await import('../models/AdminProfile.js');
+    const maxProfileDoc = await AdminProfile.findOne().sort({ id: -1 });
+    const currentMaxProfileSeq = maxProfileDoc && maxProfileDoc.id ? maxProfileDoc.id : 0;
+    await Counter.findByIdAndUpdate(
+      'admin_profiles',
+      { $max: { seq: currentMaxProfileSeq } },
+      { upsert: true }
+    );
+
+    // Auto-sync AdminProfile for all admin users
+    try {
+      const { AdminProfileService } = await import('../services/adminProfileService.js');
+      await AdminProfileService.syncExistingAdminProfiles();
+    } catch (syncErr) {
+      logger.warn(`Admin profile sync note: ${syncErr.message}`);
+    }
+
     logger.info('📊 All collections verified and ready in MongoDB Compass (JAA_Backend).');
   } catch (err) {
     logger.warn(`⚠️ Collection initialization note: ${err.message}`);

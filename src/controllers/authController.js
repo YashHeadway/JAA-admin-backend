@@ -51,8 +51,7 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const adminRegister = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  const result = await AuthService.adminRegister({ email, password });
+  const result = await AuthService.adminRegister(req.body);
 
   // Set HTTP-only cookie
   res.cookie('token', result.accessToken, {
