@@ -18,20 +18,43 @@ const startServer = async () => {
     logger.info('====================================================');
   });
 
+  // Handle server-level errors (e.g. port already in use)
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.error(`❌ Port ${env.PORT} is already in use (EADDRINUSE). Please terminate the existing process or wait for port to release.`);
+      console.error(`Port ${env.PORT} already in use. Waiting before retry...`);
+    } else {
+      logger.error(`❌ Server error: ${err.message}`);
+      console.error(err);
+    }
+    process.exit(1);
+  });
+
   // Handle unhandled Promise rejections
   process.on('unhandledRejection', (err) => {
-    logger.error(`UNHANDLED REJECTION! Shutting down... ${err.name}: ${err.message}`);
-    if (err.stack) logger.error(err.stack);
-    server.close(() => {
-      process.exit(1);
-    });
+    console.error('UNHANDLED REJECTION:', err);
+    logger.error(`UNHANDLED REJECTION: ${err?.name || 'Error'}: ${err?.message || err}`);
+    if (err?.stack) logger.error(err.stack);
   });
 
   // Handle uncaught exceptions
   process.on('uncaughtException', (err) => {
-    logger.error(`UNCAUGHT EXCEPTION! Shutting down... ${err.name}: ${err.message}`);
-    if (err.stack) logger.error(err.stack);
-    process.exit(1);
+    console.error('UNCAUGHT EXCEPTION:', err);
+    logger.error(`UNCAUGHT EXCEPTION: ${err?.name || 'Error'}: ${err?.message || err}`);
+    if (err?.stack) logger.error(err.stack);
+
+    // Benign socket/headers errors should not crash the development server
+    if (
+      err?.code === 'ERR_HTTP_HEADERS_SENT' ||
+      err?.code === 'ECONNRESET' ||
+      err?.code === 'EPIPE'
+    ) {
+      return;
+    }
+
+    server.close(() => {
+      process.exit(1);
+    });
   });
 
   // Graceful shutdown on termination signals

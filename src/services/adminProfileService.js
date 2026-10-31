@@ -3,6 +3,7 @@ import { AdminProfile } from '../models/AdminProfile.js';
 import { AdminUser } from '../models/AdminUser.js';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/apiError.js';
+import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
 
 export class AdminProfileService {
   /**
@@ -19,7 +20,7 @@ export class AdminProfileService {
         if (!existingProfile) {
           const finalName = admin.fullName || admin.name || normalizedEmail.split('@')[0];
           const finalPhone = admin.phone || admin.mobile || '';
-          const avatarVal = admin.avatar ?? null;
+          const imageVal = admin.image ?? admin.profilePhoto ?? admin.avatar ?? null;
 
           let profileId = admin.id;
           if (profileId) {
@@ -36,8 +37,9 @@ export class AdminProfileService {
             phone: finalPhone,
             mobile: finalPhone,
             role: admin.role || 'admin',
-            avatar: avatarVal,
-            profilePhoto: admin.profilePhoto ?? null,
+            image: imageVal,
+            avatar: imageVal,
+            profilePhoto: imageVal,
             isActive: admin.isActive !== undefined ? admin.isActive : true,
             status: admin.status || 'active',
             dateOfBirth: admin.dateOfBirth || '',
@@ -59,6 +61,7 @@ export class AdminProfileService {
         if (!existingProfile) {
           const finalName = u.name || u.fullName || normalizedEmail.split('@')[0];
           const finalPhone = u.phone || u.mobile || '';
+          const imageVal = u.image ?? u.profilePhoto ?? u.avatar ?? null;
 
           let profileId = u.id;
           if (profileId) {
@@ -75,8 +78,9 @@ export class AdminProfileService {
             phone: finalPhone,
             mobile: finalPhone,
             role: u.role || 'admin',
-            avatar: u.avatar ?? null,
-            profilePhoto: u.profilePhoto ?? null,
+            image: imageVal,
+            avatar: imageVal,
+            profilePhoto: imageVal,
             isActive: u.isActive !== undefined ? u.isActive : true,
             status: u.status || 'active',
             dateOfBirth: u.dateOfBirth || u.dob || '',
@@ -96,8 +100,8 @@ export class AdminProfileService {
   /**
    * Helper to format an admin profile response with 100% dynamic data from the database:
    * name, email, role, dateOfBirth, dob, gender, mobile, phone,
-   * address, city, pincode, profilePhoto, avatar, isActive, status,
-   * resetPasswordToken, resetPasswordExpires, createdAt, updatedAt
+   * address, city, pincode, profilePhoto, isActive, status,
+   * createdAt, updatedAt
    */
   static formatProfile(admin, profileDoc = null) {
     if (!admin && !profileDoc) return null;
@@ -155,16 +159,13 @@ export class AdminProfileService {
     const pincode = (admin && admin.pincode) || (profileDoc && profileDoc.pincode) || '';
 
     const profilePhoto =
-      (admin && admin.profilePhoto !== undefined ? admin.profilePhoto : null) ??
-      (profileDoc && profileDoc.profilePhoto !== undefined ? profileDoc.profilePhoto : null) ??
-      (admin && admin.avatar !== undefined ? admin.avatar : null) ??
-      (profileDoc && profileDoc.avatar !== undefined ? profileDoc.avatar : null) ??
+      (admin && admin.profilePhoto !== undefined && admin.profilePhoto !== null ? admin.profilePhoto : null) ??
+      (profileDoc && profileDoc.profilePhoto !== undefined && profileDoc.profilePhoto !== null ? profileDoc.profilePhoto : null) ??
+      (admin && admin.image !== undefined && admin.image !== null ? admin.image : null) ??
+      (profileDoc && profileDoc.image !== undefined && profileDoc.image !== null ? profileDoc.image : null) ??
+      (admin && admin.avatar !== undefined && admin.avatar !== null ? admin.avatar : null) ??
+      (profileDoc && profileDoc.avatar !== undefined && profileDoc.avatar !== null ? profileDoc.avatar : null) ??
       null;
-
-    const avatar =
-      (admin && admin.avatar !== undefined ? admin.avatar : null) ??
-      (profileDoc && profileDoc.avatar !== undefined ? profileDoc.avatar : null) ??
-      profilePhoto;
 
     const isActive =
       admin && admin.isActive !== undefined
@@ -177,15 +178,6 @@ export class AdminProfileService {
       (admin && admin.status) ||
       (profileDoc && profileDoc.status) ||
       (isActive ? 'active' : 'inactive');
-
-    const resetPasswordToken =
-      (admin && admin.resetPasswordToken) ||
-      (profileDoc && profileDoc.resetPasswordToken) ||
-      null;
-    const resetPasswordExpires =
-      (admin && admin.resetPasswordExpires) ||
-      (profileDoc && profileDoc.resetPasswordExpires) ||
-      null;
 
     const createdAt = (admin && admin.createdAt) || (profileDoc && profileDoc.createdAt) || null;
     const updatedAt = (admin && admin.updatedAt) || (profileDoc && profileDoc.updatedAt) || null;
@@ -206,11 +198,8 @@ export class AdminProfileService {
       city,
       pincode,
       profilePhoto,
-      avatar,
       isActive,
       status,
-      resetPasswordToken,
-      resetPasswordExpires,
       createdAt,
       updatedAt,
     };
@@ -276,9 +265,9 @@ export class AdminProfileService {
   }
 
   /**
-   * Retrieve all admin profiles in the database.
+   * Retrieve all admin profiles in the database with standardized 20 per page pagination.
    */
-  static async getAllProfiles() {
+  static async getAllProfiles({ page = 1, limit = 20 } = {}) {
     await this.syncExistingAdminProfiles();
 
     // Query all admin users sorted by ID
@@ -313,7 +302,16 @@ export class AdminProfileService {
       }
     }
 
-    return result;
+    const total = result.length;
+    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
+    const paginated = result.slice(skip, skip + parsedLimit);
+    const pagination = formatPaginationMeta(total, parsedPage, parsedLimit);
+
+    paginated.pagination = pagination;
+    paginated.total = total;
+    paginated.data = paginated;
+
+    return paginated;
   }
 
   /**
@@ -376,6 +374,7 @@ export class AdminProfileService {
       try {
         const finalName = admin.fullName || admin.name || admin.email.split('@')[0];
         const finalPhone = admin.phone || admin.mobile || '';
+        const imageVal = admin.image ?? admin.profilePhoto ?? admin.avatar ?? null;
         profileDoc = await AdminProfile.create({
           id: admin.id,
           userId: admin.id,
@@ -385,8 +384,9 @@ export class AdminProfileService {
           phone: finalPhone,
           mobile: finalPhone,
           role: admin.role || 'admin',
-          avatar: admin.avatar ?? null,
-          profilePhoto: admin.profilePhoto ?? null,
+          image: imageVal,
+          avatar: imageVal,
+          profilePhoto: imageVal,
           isActive: admin.isActive !== undefined ? admin.isActive : true,
           status: admin.status || 'active',
           dateOfBirth: admin.dateOfBirth || '',
@@ -437,6 +437,7 @@ export class AdminProfileService {
 
     if (!profileDoc) {
       const finalName = admin.fullName || admin.name || (admin.email ? admin.email.split('@')[0] : '');
+      const imageVal = admin.image ?? admin.profilePhoto ?? admin.avatar ?? null;
       profileDoc = await AdminProfile.create({
         userId: admin.id,
         id: admin.id,
@@ -446,8 +447,9 @@ export class AdminProfileService {
         phone: admin.phone || admin.mobile || '',
         mobile: admin.phone || admin.mobile || '',
         role: admin.role || 'admin',
-        avatar: admin.avatar ?? null,
-        profilePhoto: admin.profilePhoto ?? null,
+        image: imageVal,
+        avatar: imageVal,
+        profilePhoto: imageVal,
         isActive: admin.isActive !== undefined ? admin.isActive : true,
         status: admin.status || 'active',
         dateOfBirth: admin.dateOfBirth || '',
@@ -462,7 +464,7 @@ export class AdminProfileService {
     // Normalize field aliases
     const fullName = data.fullName ?? data.name;
     const phone = data.phone ?? data.mobile;
-    const avatar = data.avatar ?? data.profilePhoto;
+    const image = data.image ?? data.profilePhoto ?? data.avatar;
     const dateOfBirth = data.dateOfBirth ?? data.dob;
     const newEmail = data.email ? data.email.trim().toLowerCase() : undefined;
 
@@ -517,11 +519,13 @@ export class AdminProfileService {
       profileDoc.pincode = data.pincode.trim();
       admin.pincode = data.pincode.trim();
     }
-    if (avatar !== undefined) {
-      profileDoc.avatar = avatar;
-      profileDoc.profilePhoto = avatar;
-      admin.avatar = avatar;
-      admin.profilePhoto = avatar;
+    if (image !== undefined) {
+      profileDoc.image = image;
+      profileDoc.profilePhoto = image;
+      profileDoc.avatar = image;
+      admin.image = image;
+      admin.profilePhoto = image;
+      admin.avatar = image;
     }
     if (data.isActive !== undefined) {
       profileDoc.isActive = Boolean(data.isActive);

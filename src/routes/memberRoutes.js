@@ -3,6 +3,7 @@ import {
   getMembers,
   getMemberStats,
   getMemberById,
+  getMemberIdCard,
   updateMemberStatus,
   updateMember,
   deleteMember,
@@ -21,6 +22,11 @@ const router = Router();
 // Stats route must precede /:id to prevent route collision
 router.get('/stats', getMemberStats);
 router.get('/', getMembers);
+
+// ID Card routes (supports both /:id/id-card and /:id/idcard)
+router.get('/:id/id-card', getMemberIdCard);
+router.get('/:id/idcard', getMemberIdCard);
+
 router.get('/:id', getMemberById);
 
 // Create Member (supports both JSON and form-data with optional avatar)

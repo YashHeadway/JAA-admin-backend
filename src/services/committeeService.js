@@ -129,7 +129,7 @@ export class CommitteeService {
     return doc;
   }
 
-  static async getCommittee({ search = '', position = '', page = 1, limit = 15 } = {}) {
+  static async getCommittee({ search = '', position = '', page = 1, limit = 20 } = {}) {
     const filter = {};
 
     if (position && position !== 'all' && position !== 'All') {
@@ -145,7 +145,7 @@ export class CommitteeService {
       ];
     }
 
-    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
+    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
 
     const [items, total] = await Promise.all([
       Committee.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),

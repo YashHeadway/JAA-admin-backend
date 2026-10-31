@@ -9,12 +9,22 @@ import mongoose from 'mongoose';
  * @returns {object}
  */
 export const buildIdQuery = (id) => {
-  const num = Number(id);
+  if (id === null || id === undefined) return { id: -1 };
+  const str = String(id).trim();
+
+  // 24-char hex string is a MongoDB ObjectId
+  if (/^[0-9a-fA-F]{24}$/.test(str)) {
+    return { _id: str };
+  }
+
+  const num = Number(str);
   if (!isNaN(num) && num > 0) {
     return { id: num };
   }
-  if (id && typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)) {
-    return { _id: id };
+
+  if (mongoose.Types.ObjectId.isValid(str)) {
+    return { _id: str };
   }
+
   return { id: -1 }; // will match nothing safely without throwing CastError
 };

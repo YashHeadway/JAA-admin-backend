@@ -64,7 +64,8 @@ class EmailService {
    * Send a password reset email with formatted HTML and plain text alternatives.
    */
   async sendPasswordResetEmail({ to, name = 'User', resetToken }) {
-    const resetUrl = `http://localhost:${env.PORT}/api/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/admin/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">

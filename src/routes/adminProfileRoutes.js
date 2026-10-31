@@ -30,15 +30,15 @@ router.get(['/:id', '/profile/:id'], ...adminAuthGuard, getAdminProfile);
 // Update endpoints
 router
   .route(['/', '/profile', '/:id', '/profile/:id'])
-  .put(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .patch(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .post(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+  .put(...adminAuthGuard, handleFormData(['image', 'profilePhoto', 'avatar']), validate(updateAdminProfileSchema), updateAdminProfile)
+  .patch(...adminAuthGuard, handleFormData(['image', 'profilePhoto', 'avatar']), validate(updateAdminProfileSchema), updateAdminProfile)
+  .post(...adminAuthGuard, handleFormData(['image', 'profilePhoto', 'avatar']), validate(updateAdminProfileSchema), updateAdminProfile);
 
 // Alias update paths
 router
   .route(['/update-profile', '/updateProfile', '/admin-update-profile', '/adminUpdateProfile'])
-  .post(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .put(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile)
-  .patch(...adminAuthGuard, handleFormData('profilePhoto'), validate(updateAdminProfileSchema), updateAdminProfile);
+  .post(...adminAuthGuard, handleFormData(['image', 'profilePhoto', 'avatar']), validate(updateAdminProfileSchema), updateAdminProfile)
+  .put(...adminAuthGuard, handleFormData(['image', 'profilePhoto', 'avatar']), validate(updateAdminProfileSchema), updateAdminProfile)
+  .patch(...adminAuthGuard, handleFormData(['image', 'profilePhoto', 'avatar']), validate(updateAdminProfileSchema), updateAdminProfile);
 
 export default router;

@@ -7,7 +7,11 @@ export const getLeads = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    data: result.data,
+    message: 'Leads fetched successfully',
+    data: {
+      leads: result.leads,
+      pagination: result.pagination,
+    },
     pagination: result.pagination,
   });
 });
@@ -16,7 +20,7 @@ export const getLeadById = asyncHandler(async (req, res) => {
   const lead = await LeadService.getLeadById(req.params.id);
   return res.status(200).json({
     success: true,
-    status: true,
+    message: 'Lead details fetched successfully',
     data: lead,
   });
 });

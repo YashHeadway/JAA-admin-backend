@@ -3,6 +3,11 @@ import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
 
 export const errorHandler = (err, req, res, next) => {
+  // If response headers were already sent, delegate to default Express error handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
   let error = err;
 
   if (!(error instanceof ApiError)) {

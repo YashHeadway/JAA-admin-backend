@@ -6,13 +6,15 @@ import { AdminProfileService } from '../services/adminProfileService.js';
  * Endpoint: GET /api/admin/profiles or GET /api/admin/profile/all
  */
 export const getAllAdminProfiles = asyncHandler(async (req, res) => {
-  const profiles = await AdminProfileService.getAllProfiles();
+  const { page, limit } = req.query;
+  const result = await AdminProfileService.getAllProfiles({ page, limit });
 
   return res.status(200).json({
     success: true,
     message: 'Admin profiles fetched successfully',
-    total: profiles.length,
-    data: profiles,
+    total: result.total !== undefined ? result.total : result.length,
+    pagination: result.pagination,
+    data: result.data || result,
   });
 });
 

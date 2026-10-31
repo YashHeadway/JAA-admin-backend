@@ -21,9 +21,9 @@ const router = Router();
 router.post('/import', validate(importLeadsSchema), importLeads);
 router.get('/', getLeads);
 router.get('/:id', getLeadById);
-router.post('/', handleFormData(), validate(createLeadSchema), createLead);
-router.patch('/:id', handleFormData(), validate(updateLeadSchema), updateLead);
-router.put('/:id', handleFormData(), validate(updateLeadSchema), updateLead);
+router.post('/', handleFormData('image'), validate(createLeadSchema), createLead);
+router.patch('/:id', handleFormData('image'), validate(updateLeadSchema), updateLead);
+router.put('/:id', handleFormData('image'), validate(updateLeadSchema), updateLead);
 router.delete('/:id', deleteLead);
 
 export default router;

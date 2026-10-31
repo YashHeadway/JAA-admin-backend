@@ -452,6 +452,7 @@ Field Details & Enums:
   - address:       (Optional) String (e.g. "The Exhibition Center, Science Road")
   - city:          (Optional) String (e.g. "Ahmedabad")
   - pincode:       (Optional) String (e.g. "380009")
+  - image:         (Optional) String (URL) or File upload via multipart/form-data
   - profilePhoto:  (Optional) String (URL) or File upload via multipart/form-data
 
 Request Body (JSON Example):
@@ -512,35 +513,42 @@ Query Params:
   - status:  'all' | 'pending' | 'approved' | 'rejected' (default: 'all')
   - search:  Search string (matches name, business, mobile, email, membershipId)
   - page:    Page number (default: 1)
-  - limit:   Items per page (default: 15)
+  - limit:   Items per page (default: 20)
 
 Response (200 OK):
 {
   "success": true,
+  "message": "Members fetched successfully",
   "data": [
     {
-      "id": 1,
-      "membershipId": "JAA-2026-0001",
-      "name": "Amit Shah",
-      "business": "Shah Jewellers",
-      "mobile": "9825012345",
-      "email": "amit@shahjewellers.com",
+      "id": 18,
+      "membershipId": "JBAD168",
+      "name": "testt",
+      "business": "test",
+      "mobile": "9737126164",
+      "email": "testt@gmail.com",
       "city": "Ahmedabad",
-      "dob": "1980-04-12",
-      "address": "Manek Chowk",
-      "businessType": "Retailer",
-      "joinedOn": "21-10-2026",
-      "avatar": null,
+      "address": "ahmedabad",
+      "businessType": "test",
+      "joinedOn": "28-10-2026",
+      "avatar": "/uploads/jaa-logo-1792992678372.png",
       "status": "approved",
       "rejectionReason": "",
-      "createdAt": "21-10-2026 05:12 pm",
-      "updatedAt": "21-10-2026 05:20 pm"
+      "idCard": {
+        "cardNumber": "JBAD168",
+        "status": "active",
+        "issuedAt": "28-10-2026",
+        "validUntil": null,
+        "qrCode": "https://yourdomain.com/verify/JBAD168"
+      },
+      "createdAt": "28-10-2026 03:13 pm",
+      "updatedAt": "30-10-2026 12:30 pm"
     }
   ],
   "pagination": {
     "total": 45,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 3,
     "hasNext": true,
     "hasPrev": false
@@ -572,29 +580,35 @@ Response (200 OK):
 [3.3] Get Single Member Details
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/members/:id  (e.g., /api/members/1)
-Auth:        None
+Endpoint:    /api/members/:id  (e.g., /api/members/18, or /api/admin/members/18)
+Auth:        Bearer Token
 
 Response (200 OK):
 {
   "success": true,
   "data": {
-    "id": 1,
-    "membershipId": "JAA-2026-0001",
-    "name": "Amit Shah",
-    "business": "Shah Jewellers",
-    "mobile": "9825012345",
-    "email": "amit@shahjewellers.com",
+    "id": 18,
+    "membershipId": "JBAD168",
+    "name": "testt",
+    "business": "test",
+    "mobile": "9737126164",
+    "email": "testt@gmail.com",
     "city": "Ahmedabad",
-    "dob": "1980-04-12",
-    "address": "Manek Chowk",
-    "businessType": "Retailer",
-    "joinedOn": "21-10-2026",
-    "avatar": null,
+    "address": "ahmedabad",
+    "businessType": "test",
+    "joinedOn": "28-10-2026",
+    "avatar": "/uploads/jaa-logo-1792992678372.png",
     "status": "approved",
     "rejectionReason": "",
-    "createdAt": "21-10-2026 05:12 pm",
-    "updatedAt": "21-10-2026 05:20 pm"
+    "idCard": {
+      "cardNumber": "JBAD168",
+      "status": "active",
+      "issuedAt": "28-10-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD168"
+    },
+    "createdAt": "28-10-2026 03:13 pm",
+    "updatedAt": "30-10-2026 12:30 pm"
   }
 }
 
@@ -602,9 +616,9 @@ Response (200 OK):
 [3.4] Create / Register New Member
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/members
+Endpoint:    /api/members (or /api/admin/members)
 Headers:     Content-Type: application/json or multipart/form-data
-Auth:        None
+Auth:        Bearer Token
 
 Request Body:
 {
@@ -617,28 +631,39 @@ Request Body:
   "address": "C.G. Road",                // (Optional) String
   "businessType": "Wholesaler",          // (Optional) String (default: 'Retailer')
   "avatar": "/uploads/avatar.png",       // (Optional) String or File upload
-  "status": "pending",                   // (Optional) 'pending' | 'approved' | 'rejected' (default: 'pending')
-  "rejectionReason": "not proper details" // (Optional) String - rejection reason or notes (or 'reason')
+  "status": "approved",                  // (Optional) 'pending' | 'approved' | 'rejected' (default: 'pending')
+  "rejectionReason": ""                  // (Optional) String - rejection reason or notes (or 'reason')
 }
 
 Response (201 Created):
 {
-  "id": 2,
-  "membershipId": "JAA-2026-0002",
-  "name": "Rajesh Mehta",
-  "business": "Mehta Gold & Silver",
-  "mobile": "9898012345",
-  "email": "rajesh@mehtajewels.com",
-  "city": "Ahmedabad",
-  "dob": "1985-06-25",
-  "address": "C.G. Road",
-  "businessType": "Wholesaler",
-  "joinedOn": "23-10-2026",
-  "avatar": null,
-  "status": "pending",
-  "rejectionReason": "not proper details",
-  "createdAt": "23-10-2026 11:11 am",
-  "updatedAt": "23-10-2026 11:11 am"
+  "success": true,
+  "status": true,
+  "message": "Member created successfully",
+  "data": {
+    "id": 19,
+    "membershipId": "JBAD169",
+    "name": "Rajesh Mehta",
+    "business": "Mehta Gold & Silver",
+    "mobile": "9898012345",
+    "email": "rajesh@mehtajewels.com",
+    "city": "Ahmedabad",
+    "address": "C.G. Road",
+    "businessType": "Wholesaler",
+    "joinedOn": "30-10-2026",
+    "avatar": "/uploads/avatar.png",
+    "status": "approved",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD169",
+      "status": "active",
+      "issuedAt": "30-10-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD169"
+    },
+    "createdAt": "30-10-2026 04:30 pm",
+    "updatedAt": "30-10-2026 04:30 pm"
+  }
 }
 
 
@@ -712,6 +737,37 @@ Response (200 OK):
 }
 
 
+[3.8] Get Member ID Card (For View & Download in Frontend)
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/members/:id/id-card  (or /api/members/:id/idcard, /api/admin/members/:id/id-card)
+Auth:        Bearer Token
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Member ID card fetched successfully",
+  "data": {
+    "id": 18,
+    "membershipId": "JBAD168",
+    "name": "testt",
+    "business": "test",
+    "mobile": "9737126164",
+    "email": "testt@gmail.com",
+    "avatar": "/uploads/jaa-logo-1792992678372.png",
+    "city": "Ahmedabad",
+    "joinedOn": "28-10-2026",
+    "idCard": {
+      "cardNumber": "JBAD168",
+      "status": "active",
+      "issuedAt": "28-10-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD168"
+    }
+  }
+}
+
+
 ====================================================================================================
 4. EXECUTIVE COMMITTEE APIS (/api/committee)
 ====================================================================================================
@@ -726,7 +782,7 @@ Query Params:
   - gender:        'Male' | 'Female' | 'Other' | 'all'
   - businessType:  'B2B' | 'B2C' | 'all'
   - page:          Page number (default: 1)
-  - limit:         Items per page (default: 15)
+  - limit:         Items per page (default: 20)
 
 Response (200 OK):
 {
@@ -752,7 +808,7 @@ Response (200 OK):
   "pagination": {
     "total": 1,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 1,
     "hasNext": false,
     "hasPrev": false
@@ -884,7 +940,7 @@ Query Params:
   - status:  'active' | 'upcoming' | 'past' | 'all' (default: 'all')
   - search:  Search string (matches title, address, description, postedBy)
   - page:    Page number (default: 1)
-  - limit:   Items per page (default: 15)
+  - limit:   Items per page (default: 20)
 
 Response (200 OK):
 {
@@ -910,7 +966,7 @@ Response (200 OK):
   "pagination": {
     "total": 8,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 1,
     "hasNext": false,
     "hasPrev": false
@@ -1028,7 +1084,7 @@ Endpoint:    /api/groups
 Query Params:
   - search:  Search string (matches name, about, createdBy, groupType)
   - page:    Page number (default: 1)
-  - limit:   Items per page (default: 15)
+  - limit:   Items per page (default: 20)
 
 Response (200 OK):
 {
@@ -1051,7 +1107,7 @@ Response (200 OK):
   "pagination": {
     "total": 5,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 1,
     "hasNext": false,
     "hasPrev": false
@@ -1156,7 +1212,7 @@ Endpoint:    /api/broadcasts
 Query Params:
   - search:  Search string (matches title, message, sentTo)
   - page:    Page number (default: 1)
-  - limit:   Items per page (default: 15)
+  - limit:   Items per page (default: 20)
 
 Response (200 OK):
 {
@@ -1177,7 +1233,7 @@ Response (200 OK):
   "pagination": {
     "total": 15,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 1,
     "hasNext": false,
     "hasPrev": false
@@ -1220,141 +1276,186 @@ Response (201 Created):
 [8.1] Get Leads List
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/leads
+Endpoint:    /api/leads  (or /api/admin/leads)
+Auth:        Bearer Token
 Query Params:
-  - search:  Search string (matches leadName, name, businessName, mobile, email, city, source, status)
-  - status:  'Newest' | 'Contacted' | 'Qualified' | 'Converted' | 'Lost' | 'all'
+  - search:  Search string (matches title, description, status, leadName, mobile, email, city)
+  - status:  'ACTIVE' | 'INACTIVE' | 'CLOSED' | 'all'
   - page:    Page number (default: 1)
-  - limit:   Items per page (default: 15)
+  - limit:   Items per page (default: 20)
 
 Response (200 OK):
 {
   "success": true,
-  "data": [
-    {
-      "id": 1,
-      "leadName": "Raj Gathiyawala",
-      "name": "Raj Gathiyawala",
-      "mobile": "+919876543210",
-      "email": "raj@example.com",
-      "businessName": "Raj Business",
-      "businessType": "B2C",
-      "gstNumber": "24AAAAF2820R1Z0",
-      "city": "Ahmedabad",
-      "pincode": "380009",
-      "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",
-      "source": "WhatsApp",
-      "status": "Newest",
-      "description": "Interested in membership",
-      "createdAt": "23-10-2026 12:34 pm",
-      "updatedAt": "23-10-2026 12:34 pm"
+  "message": "Leads fetched successfully",
+  "data": {
+    "leads": [
+      {
+        "id": 1,
+        "title": "Gold Worker Required",
+        "description": "Need an experienced gold worker for jewellery manufacturing.",
+        "image": "https://yourdomain.com/uploads/gold-worker.jpg",
+        "status": "ACTIVE",
+        "createdAt": "2026-10-31T10:00:00.000Z",
+        "updatedAt": "2026-10-31T10:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 1,
+      "page": 1,
+      "limit": 20,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
     }
-  ],
-  "pagination": {
-    "total": 1,
-    "page": 1,
-    "limit": 15,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
   }
 }
 
 
-[8.2] Get Lead by ID
+[8.2] Get Lead by ID (Search with /:id Parameter)
 --------------------------------------------------
 Method:      GET
 Endpoint:    /api/leads/:id  (e.g., /api/leads/1)
+Auth:        Bearer Token
 
 Response (200 OK):
 {
-  "id": 1,
-  "leadName": "Raj Gathiyawala",
-  "name": "Raj Gathiyawala",
-  "mobile": "+919876543210",
-  "email": "raj@example.com",
-  "businessName": "Raj Business",
-  "businessType": "B2C",
-  "gstNumber": "24AAAAF2820R1Z0",
-  "city": "Ahmedabad",
-  "pincode": "380009",
-  "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",
-  "source": "WhatsApp",
-  "status": "Newest",
-  "description": "Interested in membership",
-  "createdAt": "23-10-2026 12:34 pm",
-  "updatedAt": "23-10-2026 12:34 pm"
+  "success": true,
+  "message": "Lead details fetched successfully",
+  "data": {
+    "id": 1,
+    "memberId": 18,
+    "title": "Gold Worker Required",
+    "description": "Need an experienced gold worker for jewellery manufacturing.",
+    "image": "https://yourdomain.com/uploads/gold-worker.jpg",
+    "status": "ACTIVE",
+
+    "member": {
+      "id": 18,
+      "membershipId": "JBAD168",
+      "name": "testt",
+      "business": "test",
+      "mobile": "9737126164",
+      "email": "testt@gmail.com",
+      "city": "Ahmedabad",
+      "address": "ahmedabad",
+      "businessType": "test",
+      "avatar": "http://localhost:5000/uploads/jaa-logo-1792992678372.png",
+      "createdAt": "28-10-2026 03:13 pm",
+      "updatedAt": "30-10-2026 04:42 pm"
+    },
+
+    "createdAt": "2026-10-31T10:00:00.000Z",
+    "updatedAt": "2026-10-31T10:00:00.000Z"
+  }
 }
 
 
 [8.3] Create Single Lead
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/leads
+Endpoint:    /api/leads (or /api/admin/leads)
 Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Bearer Token
 
 Request Body:
 {
-  "leadName": "Raj Gathiyawala",                                                     // (Required) String (or 'name')
-  "mobile": "+919876543210",                                                         // (Required) String (min 8 chars)
-  "email": "raj@example.com",                                                        // (Required) String (valid email)
-  "businessName": "Raj Business",                                                    // (Required) String (min 2 chars)
-  "businessType": "B2C",                                                             // (Optional) String (e.g. 'B2C', 'Retailer', default: 'Retailer')
-  "gstNumber": "24AAAAF2820R1Z0",                                                    // (Optional) String
-  "city": "Ahmedabad",                                                               // (Optional) String (default: 'Ahmedabad')
-  "pincode": "380009",                                                               // (Optional) String
-  "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",// (Optional) String
-  "source": "WhatsApp",                                                              // (Optional) String (default: 'Website')
-  "status": "Newest",                                                                // (Optional) String (default: 'Newest')
-  "description": "Interested in membership"                                          // (Optional) String
+  "memberId": 18,                                                    // (Required / Optional) Numeric ID or ObjectId of Member
+  "title": "Gold Worker Required",                                   // (Required) String
+  "description": "Need an experienced gold worker for jewellery manufacturing.", // (Optional) String
+  "image": "https://yourdomain.com/uploads/gold-worker.jpg",          // (Optional) String or image file upload
+  "status": "ACTIVE"                                                 // (Optional) String (default: 'ACTIVE')
 }
 
 Response (201 Created):
 {
-  "id": 1,
-  "leadName": "Raj Gathiyawala",
-  "name": "Raj Gathiyawala",
-  "businessName": "Raj Business",
-  "mobile": "+919876543210",
-  "email": "raj@example.com",
-  "businessType": "B2C",
-  "gstNumber": "24AAAAF2820R1Z0",
-  "city": "Ahmedabad",
-  "pincode": "380009",
-  "address": "The Exhibition Center, Science City Road, Ahmedabad, Gujarat - 380009",
-  "source": "WhatsApp",
-  "status": "Newest",
-  "description": "Interested in membership",
-  "createdAt": "23-10-2026 12:34 pm",
-  "updatedAt": "23-10-2026 12:34 pm"
+  "success": true,
+  "status": true,
+  "message": "Lead created successfully",
+  "data": {
+    "id": 1,
+    "memberId": 18,
+    "title": "Gold Worker Required",
+    "description": "Need an experienced gold worker for jewellery manufacturing.",
+    "image": "https://yourdomain.com/uploads/gold-worker.jpg",
+    "status": "ACTIVE",
+    "member": {
+      "id": 18,
+      "membershipId": "JBAD168",
+      "name": "testt",
+      "business": "test",
+      "mobile": "9737126164",
+      "email": "testt@gmail.com",
+      "city": "Ahmedabad",
+      "address": "ahmedabad",
+      "businessType": "test",
+      "avatar": "http://localhost:5000/uploads/jaa-logo-1792992678372.png",
+      "createdAt": "28-10-2026 03:13 pm",
+      "updatedAt": "30-10-2026 04:42 pm"
+    },
+    "createdAt": "2026-10-31T10:00:00.000Z",
+    "updatedAt": "2026-10-31T10:00:00.000Z"
+  }
+}
+    "image": "https://yourdomain.com/uploads/gold-worker.jpg",
+    "status": "ACTIVE",
+    "member": {
+      "_id": "6ae5879e71b5a058f40d70ae",
+      "name": "Raju Gathiyawala",
+      "mobileNumber": "9988776655",
+      "email": "raju@gmail.com",
+      "businessName": "Raju Jewellers",
+      "businessType": "B2C",
+      "city": "Ahmedabad",
+      "pincode": "380009",
+      "address": "Science City Road, Ahmedabad"
+    },
+    "createdAt": "2026-10-31T10:00:00.000Z",
+    "updatedAt": "2026-10-31T10:00:00.000Z"
+  }
 }
 
 
 [8.4] Update Lead
 --------------------------------------------------
 Method:      PATCH or PUT
-Endpoint:    /api/leads/:id  (e.g., /api/leads/1)
+Endpoint:    /api/leads/:id  (e.g., /api/leads/6adb0706cf541f78c065dbc2)
 Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Bearer Token
 
 Request Body: (All fields optional)
 {
-  "leadName": "Raj Gathiyawala",
-  "status": "Contacted",
-  "description": "Followed up via call"
+  "title": "Gold Worker Required - Urgent",
+  "status": "ACTIVE",
+  "description": "Need an experienced gold worker for immediate joining."
 }
 
 Response (200 OK):
 {
-  "id": 1,
-  "leadName": "Raj Gathiyawala",
-  "name": "Raj Gathiyawala",
-  "businessName": "Raj Business",
-  "mobile": "+919876543210",
-  "email": "raj@example.com",
-  "status": "Contacted",
-  "description": "Followed up via call",
-  "createdAt": "23-10-2026 12:34 pm",
-  "updatedAt": "23-10-2026 12:36 pm"
+  "success": true,
+  "status": true,
+  "message": "Lead updated successfully",
+  "data": {
+    "_id": "6adb0706cf541f78c065dbc2",
+    "memberId": "6ae5879e71b5a058f40d70ae",
+    "title": "Gold Worker Required - Urgent",
+    "description": "Need an experienced gold worker for immediate joining.",
+    "image": "https://yourdomain.com/uploads/gold-worker.jpg",
+    "status": "ACTIVE",
+    "member": {
+      "_id": "6ae5879e71b5a058f40d70ae",
+      "name": "Raju Gathiyawala",
+      "mobileNumber": "9988776655",
+      "email": "raju@gmail.com",
+      "businessName": "Raju Jewellers",
+      "businessType": "B2C",
+      "city": "Ahmedabad",
+      "pincode": "380009",
+      "address": "Science City Road, Ahmedabad"
+    },
+    "createdAt": "2026-10-31T10:00:00.000Z",
+    "updatedAt": "2026-10-31T11:45:00.000Z"
+  }
 }
 
 
@@ -1417,7 +1518,7 @@ Query Params:
   - status:    'Open' | 'New' | 'In Progress' | 'Under Review' | 'Resolved' | 'Closed' | 'All'
   - priority:  'Low' | 'Medium' | 'High' | 'All'
   - page:      Page number (default: 1)
-  - limit:     Items per page (default: 15)
+  - limit:     Items per page (default: 20)
 
 Response (200 OK):
 {
@@ -1511,7 +1612,7 @@ Response (200 OK):
 }
 
 
-[9.3] Register New Complaint
+[9.3A] Register New Complaint - Option 1: Member to Member
 --------------------------------------------------
 Method:      POST
 Endpoint:    /api/complaints
@@ -1520,26 +1621,30 @@ Headers:     Content-Type: application/json or multipart/form-data
 Request Body:
 {
   "complaintAgainst": "Member",
-  "targetMemberId": 12,
-  "complaintType": "Payment Issue",
-  "hasPreviousInteraction": false,
-  "preferredResolution": "Requesting immediate payment of pending amount.",
+  "complaintBy": {
+    "memberId": 1
+  },
+  "targetMemberId": 2,                                                  // Registered member ID or targetMemberObjectId
+  "complaintType": "Payment Dispute",
+  "priority": "High",
+  "hasPreviousInteraction": true,
+  "preferredResolution": "Immediate clearance of pending RTGS payment.",
   "complaintDetails": {
-    "incidentDate": "2026-12-15",
-    "incidentTime": "17:30",
-    "location": "Iscon Cross Road, Ahmedabad",
+    "incidentDate": "2026-10-12",
+    "incidentTime": "15:30",
+    "location": "Manek Chowk, Ahmedabad",
     "priority": "High",
     "proofAvailable": true,
-    "amountInvolved": 450000
+    "amountInvolved": 750000
   },
   "description": {
-    "issueSummary": "Payment not received for gold jewellery order",
-    "detailedDescription": "Payment has not been received despite multiple reminders."
+    "issueSummary": "Payment pending for 100g 24K gold bullion supply",
+    "detailedDescription": "Gold bullion delivery was completed on 12-10-2026. Payment cheque was bounced upon presentation."
   },
   "media": [
     {
-      "url": "/uploads/payment-proof.jpg",
-      "type": "Photo"
+      "url": "/uploads/invoice-101.pdf",
+      "type": "Document"
     }
   ]
 }
@@ -1549,10 +1654,110 @@ Response (201 Created):
   "success": true,
   "message": "Complaint registered successfully",
   "data": {
+    "complaintId": 1,
+    "id": 1,
+    "complaintNumber": "CMP-2026-001",
+    "complaintAgainst": "Member",
+    "complaintBy": {
+      "_id": "6ad8a51e4ff39d392932da30",
+      "memberObjectId": "6ad8a51e4ff39d392932da30",
+      "memberId": 1,
+      "membershipId": "JBAD151",
+      "name": "Rajesh Mehta",
+      "business": "Mehta Jewellers",
+      "mobile": "9876501234",
+      "email": "rajesh.mehta@mehtajewels.com",
+      "city": "Surat",
+      "address": "104, Golden Plaza, C.G. Road, Ahmedabad, Gujarat - 380009",
+      "avatar": "/uploads/members/ramesh.jpg"
+    },
+    "targetMember": {
+      "_id": "6ad8a5a94ff39d392932da31",
+      "memberObjectId": "6ad8a5a94ff39d392932da31",
+      "memberId": 2,
+      "membershipId": "JBAD152",
+      "name": "yash soni",
+      "business": "Mehta Jewels & Bullion",
+      "mobile": "9737126164",
+      "email": "yashsoni3012@gmail.com",
+      "city": "Ahmedabad",
+      "address": "C 402 Hirabhai tower, Maninagar, Ahmedabad",
+      "avatar": "/uploads/screenshot-2026-10-21-115244-1792587156090.png"
+    },
+    "againstPerson": null,
+    "complaintType": "Payment Dispute",
+    "status": "In Progress"
+  }
+}
+
+
+[9.3B] Register New Complaint - Option 2: Member to Another Person (Non-Member)
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/complaints
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body:
+{
+  "complaintAgainst": "Other",
+  "complaintBy": {
+    "memberId": 1
+  },
+  "againstPerson": {
+    "name": "Prakash Sharma",                                           // (Required) String
+    "mobile": "9824012345",                                             // (Required) String
+    "email": "prakash.sharma@sharmatraders.in",                          // (Optional) String or null
+    "gstNumber": "24AABCS5544K1Z2",                                     // (Optional) String or null
+    "address": "Shop 12, New Cloth Market, Raipur, Ahmedabad",          // (Optional) String or null
+    "company": "Sharma Gold Refineries"                                 // (Optional) String or null
+  },
+  "complaintType": "Fraud & Breach of Trust",
+  "priority": "High",
+  "hasPreviousInteraction": false,
+  "preferredResolution": "Full recovery of raw scrap gold or cash compensation.",
+  "complaintDetails": {
+    "incidentDate": "2026-10-20",
+    "incidentTime": "14:00",
+    "location": "Raipur, Ahmedabad",
+    "priority": "High",
+    "proofAvailable": true,
+    "amountInvolved": 1200000
+  },
+  "description": {
+    "issueSummary": "Advance transfer made for gold refining but refiner absconded",
+    "detailedDescription": "Sent raw scrap gold for refining with 50% advance. The refinery shop has remained closed for 10 days."
+  }
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Complaint registered successfully",
+  "data": {
+    "complaintId": 2,
     "id": 2,
     "complaintNumber": "CMP-2026-002",
-    "status": "New",
-    "complaintAgainst": "Member",
+    "complaintAgainst": "Other",
+    "complaintBy": {
+      "_id": "6ad8a51e4ff39d392932da30",
+      "memberObjectId": "6ad8a51e4ff39d392932da30",
+      "memberId": 1,
+      "name": "Rajesh Mehta",
+      "business": "Mehta Jewellers"
+    },
+    "targetMember": null,
+    "againstPerson": {
+      "name": "Prakash Sharma",
+      "mobile": "9824012345",
+      "email": "prakash.sharma@sharmatraders.in",
+      "gstNumber": "24AABCS5544K1Z2",
+      "address": "Shop 12, New Cloth Market, Raipur, Ahmedabad",
+      "company": "Sharma Gold Refineries"
+    },
+    "complaintType": "Fraud & Breach of Trust",
+    "status": "Open"
+  }
+}
     "member": {
       "id": 12,
       "name": "Yash Soni"
@@ -1663,36 +1868,48 @@ Response (200 OK):
 [10.1] Get Posts List
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/posts
+Endpoints:   /api/admin/posts  or  /api/posts
 Query Params:
-  - search:     Search string (matches title, description, location)
+  - search:     Search string (matches title, description, location, admin name/email, member name/business)
   - mediaType:  'Photo' | 'Video' | 'Notice' | 'all'
   - location:   Filter by location (e.g. 'Ahmedabad')
   - isPinned:   true | false | 'all'
+  - status:     'published' | 'draft' | 'all'
   - page:       Page number (default: 1)
-  - limit:      Items per page (default: 15)
+  - limit:      Items per page (default: 20)
+
+Note: In the list endpoint, each post contains only the index [0] media item, postedBy snapshot, createdAt, and status. Full post details are available via GET /api/admin/posts/:id.
 
 Response (200 OK):
 {
   "success": true,
   "data": [
     {
-      "id": 1,
-      "title": "Jewellers Association Event",
-      "description": "Upcoming jewellery event",
-      "media": "/uploads/event-photo.jpg",
-      "mediaType": "Photo",
-      "location": "Ahmedabad",
-      "allowComments": true,
-      "isPinned": false,
-      "createdAt": "23-10-2026 02:00 pm",
-      "updatedAt": "23-10-2026 02:00 pm"
+      "id": 12,
+      "title": "AGM 2026 Official Notice",
+      "media": [
+        {
+          "url": "/uploads/jaa-logo.png",
+          "fileType": "image/png"
+        }
+      ],
+      "postedBy": {
+        "role": "admin",
+        "admin": {
+          "id": 1,
+          "name": "JAA Admin",
+          "email": "admin@jaa.com",
+          "avatar": "/uploads/admin-profile.png"
+        }
+      },
+      "createdAt": "30-10-2026 02:30 pm",
+      "status": "published"
     }
   ],
   "pagination": {
-    "total": 3,
+    "total": 5,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 1,
     "hasNext": false,
     "hasPrev": false
@@ -1703,84 +1920,164 @@ Response (200 OK):
 [10.2] Get Post by ID
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/posts/:id  (e.g., /api/posts/1)
+Endpoints:   /api/admin/posts/:id  or  /api/posts/:id  (e.g., /api/admin/posts/12)
 
 Response (200 OK):
 {
-  "id": 1,
-  "title": "Jewellers Association Event",
-  "description": "Upcoming jewellery event",
-  "media": "/uploads/event-photo.jpg",
-  "mediaType": "Photo",
-  "location": "Ahmedabad",
-  "allowComments": true,
-  "isPinned": false,
-  "createdAt": "23-10-2026 02:00 pm",
-  "updatedAt": "23-10-2026 02:00 pm"
+  "success": true,
+  "status": true,
+  "data": {
+    "id": 12,
+    "title": "AGM 2026 Official Notice",
+    "description": "Annual General Meeting circular for all members.",
+    "media": [
+      {
+        "url": "/uploads/jaa-logo.png",
+        "fileType": "image/png"
+      },
+      {
+        "url": "/uploads/agm-video.mp4",
+        "fileType": "video/mp4"
+      }
+    ],
+    "location": "Ahmedabad",
+    "allowComments": true,
+    "isPinned": true,
+    "postedBy": {
+      "role": "admin",
+      "admin": {
+        "id": 1,
+        "name": "JAA Admin",
+        "email": "admin@jaa.com",
+        "avatar": "/uploads/admin-profile.png"
+      }
+    },
+    "createdAt": "30-10-2026 02:30 pm",
+    "updatedAt": "30-10-2026 02:30 pm",
+    "status": "published"
+  }
 }
 
 
 [10.3] Create New Post
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/posts
+Endpoints:   /api/admin/posts  or  /api/posts
 Headers:     Content-Type: application/json or multipart/form-data
-Field for File Upload: "media" (Accepts: Photo, Video, or Notice PDF)
-
-Supported Media Formats in "media":
-  - Photo:       .jpg, .jpeg, .png, .webp, .gif, .svg
-  - Video:       .mp4, .webm, .mov, .avi, .mkv, .3gp
-  - Notice/PDF:  .pdf
+Field for File Upload: "media" (Accepts: Photos, Videos, or PDF Notice)
 
 Request Body:
 {
-  "title": "Jewellers Association Event", // (Required) String (min 2 chars)
-  "description": "Upcoming jewellery event", // (Optional) String
-  "media": "event-photo.jpg",               // (Required) String filename/URL OR multipart file upload
-  "location": "Ahmedabad",                  // (Optional) String (default: 'Ahmedabad')
-  "allowComments": true,                    // (Optional) Boolean (default: true)
-  "isPinned": false                         // (Optional) Boolean (default: false)
+  "title": "AGM 2026 Official Notice",
+  "description": "Annual General Meeting circular for all members.",
+  "media": [
+    {
+      "url": "/uploads/jaa-logo.png",
+      "fileType": "image/png"
+    },
+    {
+      "url": "/uploads/agm-video.mp4",
+      "fileType": "video/mp4"
+    }
+  ],
+  "location": "Ahmedabad",
+  "allowComments": true,
+  "isPinned": true,
+  "status": "published",
+  "postedBy": {
+    "role": "admin",
+    "admin": {
+      "id": 1,
+      "name": "JAA Admin",
+      "email": "admin@jaa.com",
+      "avatar": "/uploads/admin-profile.png"
+    }
+  }
 }
 
 Response (201 Created):
 {
-  "id": 1,
-  "title": "Jewellers Association Event",
-  "description": "Upcoming jewellery event",
-  "media": "/uploads/event-photo.jpg",
-  "mediaType": "Photo",
-  "location": "Ahmedabad",
-  "allowComments": true,
-  "isPinned": false,
-  "createdAt": "23-10-2026 02:00 pm",
-  "updatedAt": "23-10-2026 02:00 pm"
+  "success": true,
+  "message": "Post created successfully",
+  "data": {
+    "id": 12,
+    "title": "AGM 2026 Official Notice",
+    "description": "Annual General Meeting circular for all members.",
+    "media": [
+      {
+        "url": "/uploads/jaa-logo.png",
+        "fileType": "image/png"
+      },
+      {
+        "url": "/uploads/agm-video.mp4",
+        "fileType": "video/mp4"
+      }
+    ],
+    "location": "Ahmedabad",
+    "allowComments": true,
+    "isPinned": true,
+    "postedBy": {
+      "role": "admin",
+      "admin": {
+        "id": 1,
+        "name": "JAA Admin",
+        "email": "admin@jaa.com",
+        "avatar": "/uploads/admin-profile.png"
+      }
+    },
+    "createdAt": "30-10-2026 02:30 pm",
+    "updatedAt": "30-10-2026 02:30 pm",
+    "status": "published"
+  }
 }
 
 
 [10.4] Update Post
 --------------------------------------------------
 Method:      PUT or PATCH
-Endpoint:    /api/posts/:id  (e.g., /api/posts/1)
+Endpoints:   /api/admin/posts/:id  or  /api/posts/:id  (e.g., /api/admin/posts/12)
 Headers:     Content-Type: application/json or multipart/form-data
 
 Request Body (Any fields optional):
 {
   "isPinned": true,
-  "description": "Updated event description"
+  "description": "Updated AGM circular description"
 }
 
 Response (200 OK):
 {
-  "id": 1,
-  "title": "Jewellers Association Event",
-  "description": "Updated event description",
-  "media": "/uploads/event-photo.jpg",
-  "mediaType": "Photo",
-  "location": "Ahmedabad",
-  "allowComments": true,
-  "isPinned": true,
-  "createdAt": "23-10-2026 02:00 pm",
-  "updatedAt": "23-10-2026 02:05 pm"
+  "success": true,
+  "message": "Post updated successfully",
+  "data": {
+    "id": 12,
+    "title": "AGM 2026 Official Notice",
+    "description": "Updated AGM circular description",
+    "media": [
+      {
+        "url": "/uploads/jaa-logo.png",
+        "fileType": "image/png"
+      },
+      {
+        "url": "/uploads/agm-video.mp4",
+        "fileType": "video/mp4"
+      }
+    ],
+    "location": "Ahmedabad",
+    "allowComments": true,
+    "isPinned": true,
+    "postedBy": {
+      "role": "admin",
+      "admin": {
+        "id": 1,
+        "name": "JAA Admin",
+        "email": "admin@jaa.com",
+        "avatar": "/uploads/admin-profile.png"
+      }
+    },
+    "createdAt": "30-10-2026 02:30 pm",
+    "updatedAt": "30-10-2026 02:35 pm",
+    "status": "published"
+  }
 }
 
 
@@ -1931,7 +2228,7 @@ HTTP Status: 200 OK (or 201 Created)
   "pagination": {
     "total": 100,
     "page": 1,
-    "limit": 15,
+    "limit": 20,
     "totalPages": 7,
     "hasNext": true,
     "hasPrev": false

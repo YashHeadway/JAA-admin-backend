@@ -6,7 +6,7 @@ import { buildIdQuery } from '../utils/queryHelper.js';
 import { formatDateOnly } from '../utils/dateFormatter.js';
 
 export class GroupService {
-  static async getGroups({ search = '', page = 1, limit = 15 } = {}) {
+  static async getGroups({ search = '', page = 1, limit = 20 } = {}) {
     const filter = {};
 
     if (search && search.trim()) {
@@ -14,7 +14,7 @@ export class GroupService {
       filter.$or = [{ name: reg }, { about: reg }];
     }
 
-    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
+    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
 
     const [items, total] = await Promise.all([
       Group.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),

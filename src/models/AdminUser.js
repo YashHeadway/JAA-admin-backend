@@ -19,6 +19,7 @@ const adminUserSchema = new mongoose.Schema(
     address: { type: String, default: '' },
     city: { type: String, default: '' },
     pincode: { type: String, default: '' },
+    image: { type: String, default: null },
     profilePhoto: { type: String, default: null },
     avatar: { type: String, default: null },
     isActive: { type: Boolean, default: true },
@@ -37,6 +38,15 @@ const adminUserSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
+        if (ret.image === undefined || ret.image === null) {
+          ret.image = ret.profilePhoto || ret.avatar || null;
+        }
+        if (ret.profilePhoto === undefined || ret.profilePhoto === null) {
+          ret.profilePhoto = ret.image || ret.avatar || null;
+        }
+        if (ret.avatar === undefined || ret.avatar === null) {
+          ret.avatar = ret.image || ret.profilePhoto || null;
+        }
         if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
         if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;
@@ -50,6 +60,15 @@ const adminUserSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.resetPasswordToken;
         delete ret.resetPasswordExpires;
+        if (ret.image === undefined || ret.image === null) {
+          ret.image = ret.profilePhoto || ret.avatar || null;
+        }
+        if (ret.profilePhoto === undefined || ret.profilePhoto === null) {
+          ret.profilePhoto = ret.image || ret.avatar || null;
+        }
+        if (ret.avatar === undefined || ret.avatar === null) {
+          ret.avatar = ret.image || ret.profilePhoto || null;
+        }
         if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
         if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
         return ret;

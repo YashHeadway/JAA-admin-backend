@@ -66,9 +66,13 @@ export const upload = multer({
  * Middleware that seamlessly supports multipart/form-data (from Postman or file inputs)
  * as well as raw JSON payloads without throwing errors.
  *
- * @param {string} fieldName - Optional file field name (e.g., 'media', 'avatar', 'image')
+ * @param {string | string[]} fieldName - Optional file field name or array of aliases (e.g., 'media', 'avatar', 'image')
  */
 export const handleFormData = (fieldName = 'media') => {
+  const fieldNames = Array.isArray(fieldName) ? fieldName : [fieldName];
+  const photoFields = ['image', 'profilePhoto', 'avatar', 'photo'];
+  const isPhotoMode = fieldNames.some((fn) => photoFields.includes(fn));
+
   return (req, res, next) => {
     const contentType = req.headers['content-type'] || '';
     if (contentType.includes('multipart/form-data')) {
@@ -76,10 +80,38 @@ export const handleFormData = (fieldName = 'media') => {
       return uploader(req, res, (err) => {
         if (err) return next(err);
         if (req.files && req.files.length > 0) {
-          const matched = req.files.find((f) => f.fieldname === fieldName) || req.files[0];
-          req.body[matched.fieldname] = `/uploads/${matched.filename}`;
-          if (fieldName && matched.fieldname !== fieldName) {
-            req.body[fieldName] = `/uploads/${matched.filename}`;
+          const matched =
+            req.files.find((f) => fieldNames.includes(f.fieldname)) ||
+            (isPhotoMode ? req.files.find((f) => photoFields.includes(f.fieldname)) : null) ||
+            req.files[0];
+
+          const fileUrl = `/uploads/${matched.filename}`;
+          req.body[matched.fieldname] = fileUrl;
+
+          for (const fn of fieldNames) {
+            if (fn && !req.body[fn]) {
+              req.body[fn] = fileUrl;
+            }
+          }
+
+          // If working with profile photos/images, sync all standard aliases
+          if (isPhotoMode || photoFields.includes(matched.fieldname)) {
+            if (!req.body.image) req.body.image = fileUrl;
+            if (!req.body.profilePhoto) req.body.profilePhoto = fileUrl;
+            if (!req.body.avatar) req.body.avatar = fileUrl;
+          }
+
+          // If working with media (posts/complaints), support multiple or single uploaded files
+          if (fieldNames.includes('media')) {
+            const mediaFiles = req.files.filter(
+              (f) => f.fieldname === 'media' || f.fieldname === 'media[]' || f.fieldname.startsWith('media')
+            );
+            if (mediaFiles.length > 0) {
+              req.body.media = mediaFiles.map((f) => ({
+                url: `/uploads/${f.filename}`,
+                fileType: f.mimetype || 'image/jpeg',
+              }));
+            }
           }
         }
         next();

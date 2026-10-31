@@ -7,10 +7,10 @@ import { MEMBER_STATUS } from '../constants/status.js';
 import { formatDateOnly } from '../utils/dateFormatter.js';
 
 export class MemberService {
-  static async getMembers({ status = MEMBER_STATUS.ALL, search = '', page = 1, limit = 15 } = {}) {
+  static async getMembers({ status = MEMBER_STATUS.ALL, search = '', page = 1, limit = 20 } = {}) {
     const filter = {};
 
-    if (status && status !== MEMBER_STATUS.ALL) {
+    if (status && status !== MEMBER_STATUS.ALL && status.toLowerCase() !== 'all') {
       filter.status = status.toLowerCase();
     }
 
@@ -25,7 +25,7 @@ export class MemberService {
       ];
     }
 
-    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
+    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
 
     const [items, total, allCount, pendingCount, approvedCount, rejectedCount] = await Promise.all([
       Member.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
@@ -71,12 +71,31 @@ export class MemberService {
     return member;
   }
 
+  static async getMemberIdCard(id) {
+    const member = await this.getMemberById(id);
+    const m = typeof member.toJSON === 'function' ? member.toJSON() : member;
+    return {
+      id: m.id,
+      membershipId: m.membershipId,
+      name: m.name,
+      business: m.business,
+      mobile: m.mobile,
+      email: m.email,
+      avatar: m.avatar,
+      city: m.city,
+      joinedOn: m.joinedOn,
+      idCard: m.idCard,
+    };
+  }
+
   static async updateStatus(id, status, reason = '') {
+    const cardStatus = status === 'rejected' ? 'inactive' : 'active';
     const updated = await Member.findOneAndUpdate(
       buildIdQuery(id),
       {
         status,
         rejectionReason: status === 'rejected' ? reason : (reason || ''),
+        'idCard.status': cardStatus,
       },
       { returnDocument: 'after' }
     );
@@ -89,13 +108,39 @@ export class MemberService {
   }
 
   static async updateMember(id, updates) {
-    if (updates.reason !== undefined && updates.rejectionReason === undefined) {
-      updates.rejectionReason = updates.reason;
+    const cleanUpdates = { ...updates };
+    delete cleanUpdates._id;
+    delete cleanUpdates.id;
+
+    if (cleanUpdates.reason !== undefined && cleanUpdates.rejectionReason === undefined) {
+      cleanUpdates.rejectionReason = cleanUpdates.reason;
+    }
+    if (cleanUpdates.fullName && !cleanUpdates.name) {
+      cleanUpdates.name = cleanUpdates.fullName;
+    }
+    if (cleanUpdates.businessName && !cleanUpdates.business) {
+      cleanUpdates.business = cleanUpdates.businessName;
+    }
+    if (cleanUpdates.phone && !cleanUpdates.mobile) {
+      cleanUpdates.mobile = cleanUpdates.phone;
+    }
+    if (cleanUpdates.status && typeof cleanUpdates.status === 'string') {
+      cleanUpdates.status = cleanUpdates.status.toLowerCase();
+      cleanUpdates['idCard.status'] = cleanUpdates.status === 'rejected' ? 'inactive' : 'active';
+    }
+    if (cleanUpdates.image && !cleanUpdates.avatar) {
+      cleanUpdates.avatar = cleanUpdates.image;
+    } else if (cleanUpdates.profilePhoto && !cleanUpdates.avatar) {
+      cleanUpdates.avatar = cleanUpdates.profilePhoto;
+    }
+    if (cleanUpdates.membershipId) {
+      cleanUpdates['idCard.cardNumber'] = cleanUpdates.membershipId;
+      cleanUpdates['idCard.qrCode'] = `https://yourdomain.com/verify/${cleanUpdates.membershipId}`;
     }
 
     const updated = await Member.findOneAndUpdate(
       buildIdQuery(id),
-      updates,
+      cleanUpdates,
       { returnDocument: 'after' }
     );
 
@@ -120,14 +165,26 @@ export class MemberService {
       ? memberData.rejectionReason
       : (memberData.reason !== undefined ? memberData.reason : '');
 
-    const buildPayload = (assignedId) => ({
-      id: assignedId,
-      membershipId: memberData.membershipId || `JBAD${150 + assignedId}`,
-      joinedOn: formatDateOnly(memberData.joinedOn || new Date()),
-      status: memberData.status || 'pending',
-      ...memberData,
-      rejectionReason,
-    });
+    const buildPayload = (assignedId) => {
+      const mid = memberData.membershipId || `JBAD${150 + assignedId}`;
+      const joinedDate = formatDateOnly(memberData.joinedOn || new Date());
+      const cardStatus = memberData.status === 'rejected' ? 'inactive' : 'active';
+      return {
+        id: assignedId,
+        membershipId: mid,
+        joinedOn: joinedDate,
+        status: memberData.status || 'pending',
+        ...memberData,
+        idCard: {
+          cardNumber: mid,
+          status: memberData.idCard?.status || cardStatus,
+          issuedAt: memberData.idCard?.issuedAt ? formatDateOnly(memberData.idCard.issuedAt) : joinedDate,
+          validUntil: memberData.idCard?.validUntil || null,
+          qrCode: memberData.idCard?.qrCode || `https://yourdomain.com/verify/${mid}`,
+        },
+        rejectionReason,
+      };
+    };
 
     try {
       const newMember = await Member.create(buildPayload(id));

@@ -30,11 +30,14 @@ async function run() {
   }
 
   // Verify fields match specification
-  const fields = ['_id', 'name', 'email', 'phone', 'role', 'avatar', 'isActive', 'createdAt', 'updatedAt'];
+  const fields = ['_id', 'name', 'email', 'phone', 'role', 'profilePhoto', 'isActive', 'createdAt', 'updatedAt'];
   for (const f of fields) {
     if (!(f in data1.data)) {
       throw new Error(`Missing expected field: ${f} in data`);
     }
+  }
+  if ('image' in data1.data || 'avatar' in data1.data) {
+    throw new Error('image or avatar should not be present in response data');
   }
   console.log('✅ Formatted data keys verified:', Object.keys(data1.data));
 
@@ -119,7 +122,9 @@ async function run() {
     newProfData.data.email !== testEmail ||
     newProfData.data.name !== 'Auto Admin Test' ||
     newProfData.data.phone !== '9876543210' ||
-    newProfData.data.avatar !== null ||
+    newProfData.data.profilePhoto !== null ||
+    newProfData.data.image !== undefined ||
+    newProfData.data.avatar !== undefined ||
     newProfData.data.isActive !== true ||
     newProfData.data.role !== 'admin'
   ) {

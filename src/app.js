@@ -98,11 +98,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Automatically format createdAt and updatedAt fields into 'DD-MM-YYYY hh:mm am/pm' across all API responses
+// Automatically format createdAt and updatedAt fields into 'DD-MM-YYYY hh:mm am/pm' across API responses
+// (excluding leads routes where standard ISO 8601 timestamps are required)
 app.use((req, res, next) => {
   const originalJson = res.json;
   res.json = function (body) {
-    if (body && typeof body === 'object') {
+    const isLeadsRoute = req.originalUrl && req.originalUrl.toLowerCase().includes('/leads');
+    if (body && typeof body === 'object' && !isLeadsRoute) {
       formatTimestamps(body);
     }
     return originalJson.call(this, body);
@@ -116,15 +118,20 @@ app.use(compression());
 
 // Static file serving for uploads and images
 const uploadsDir = path.resolve(env.UPLOAD_DIR);
-app.use('/uploads', express.static(uploadsDir));
-app.use('/images', express.static(path.join(uploadsDir, 'images')));
-app.use('/images', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir, { maxAge: '1d', fallthrough: true }));
+app.use('/images', express.static(path.join(uploadsDir, 'images'), { maxAge: '1d', fallthrough: true }));
+app.use('/images', express.static(uploadsDir, { maxAge: '1d', fallthrough: true }));
 
 // Fallback for missing static images under /uploads or /images (returns default logo if available)
 app.use(['/uploads', '/images'], (req, res, next) => {
+  const isImageRequest = /\.(png|jpe?g|webp|svg|gif)$/i.test(req.path);
   const fallbackLogo = path.join(uploadsDir, 'jaa-logo.png');
-  if (fs.existsSync(fallbackLogo)) {
-    return res.sendFile(fallbackLogo);
+  if (isImageRequest && fs.existsSync(fallbackLogo)) {
+    return res.sendFile(fallbackLogo, (err) => {
+      if (err && !res.headersSent) {
+        next(err);
+      }
+    });
   }
   next();
 });

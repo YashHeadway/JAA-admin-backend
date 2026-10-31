@@ -24,7 +24,10 @@ export const updateAdminProfileSchema = z.object({
   address: z.preprocess(emptyToUndefined, z.string().trim().optional()),
   city: z.preprocess(emptyToUndefined, z.string().trim().optional()),
   pincode: z.preprocess(emptyToUndefined, z.string().trim().optional()),
-  profilePhoto: z.preprocess(emptyToUndefined, z.string().optional()),
-  avatar: z.preprocess(emptyToUndefined, z.string().optional()),
+  image: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  profilePhoto: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  avatar: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  isActive: z.union([z.boolean(), z.string()]).optional(),
+  status: z.string().optional(),
 });
 

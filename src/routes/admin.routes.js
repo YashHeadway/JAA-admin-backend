@@ -39,7 +39,7 @@ router.get('/profile/:id', ...adminGuard, getAdminProfile);
 router.put(
   ['/profile', '/profile/:id'],
   ...adminGuard,
-  handleFormData('profilePhoto'),
+  handleFormData(['image', 'profilePhoto', 'avatar']),
   validate(updateAdminProfileSchema),
   updateAdminProfile
 );
@@ -47,7 +47,15 @@ router.put(
 router.patch(
   ['/profile', '/profile/:id'],
   ...adminGuard,
-  handleFormData('profilePhoto'),
+  handleFormData(['image', 'profilePhoto', 'avatar']),
+  validate(updateAdminProfileSchema),
+  updateAdminProfile
+);
+
+router.post(
+  ['/profile', '/profile/:id'],
+  ...adminGuard,
+  handleFormData(['image', 'profilePhoto', 'avatar']),
   validate(updateAdminProfileSchema),
   updateAdminProfile
 );

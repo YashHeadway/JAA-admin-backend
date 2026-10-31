@@ -5,7 +5,7 @@ import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
 import { buildIdQuery } from '../utils/queryHelper.js';
 
 export class BroadcastService {
-  static async getBroadcasts({ search = '', page = 1, limit = 15 } = {}) {
+  static async getBroadcasts({ search = '', page = 1, limit = 20 } = {}) {
     const filter = {};
 
     if (search && search.trim()) {
@@ -13,7 +13,7 @@ export class BroadcastService {
       filter.$or = [{ title: reg }, { message: reg }];
     }
 
-    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 15);
+    const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
 
     const [items, total] = await Promise.all([
       Broadcast.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),

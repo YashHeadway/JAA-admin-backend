@@ -116,13 +116,16 @@ async function runTests() {
       d.email === 'yash@gmail.com' &&
       (d.role === 'admin' || d.role === 'Admin') &&
       d.name !== undefined &&
+      d.profilePhoto !== undefined &&
+      d.image === undefined &&
+      d.avatar === undefined &&
       d.isActive === true;
 
     const noSensitiveFields = d.password === undefined && d.__v === undefined;
 
     assert(
       isSuccess && hasRequiredFields && noSensitiveFields,
-      'Test 4b: Valid admin JWT cookie returns HTTP 200 with all profile fields',
+      'Test 4b: Valid admin JWT cookie returns HTTP 200 with all profile fields (including profilePhoto, without image/avatar)',
       `Status: ${profileRes.status}, data: ${JSON.stringify(profileData)}`
     );
   }

@@ -10,6 +10,7 @@ export const getComplaints = asyncHandler(async (req, res) => {
     message: 'Complaints fetched successfully',
     summary: result.summary,
     data: result.data,
+    pagination: result.pagination,
   });
 });
 

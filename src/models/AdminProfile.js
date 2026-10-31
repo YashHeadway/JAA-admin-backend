@@ -21,6 +21,7 @@ const adminProfileSchema = new mongoose.Schema(
     address: { type: String, default: '' },
     city: { type: String, default: '' },
     pincode: { type: String, default: '' },
+    image: { type: String, default: null },
     avatar: { type: String, default: null },
     profilePhoto: { type: String, default: null },
     isActive: { type: Boolean, default: true },
@@ -31,6 +32,34 @@ const adminProfileSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: 'admin_profiles',
+    toJSON: {
+      virtuals: false,
+      transform: (doc, ret) => {
+        delete ret.__v;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpires;
+        if (!ret.profilePhoto && (ret.image || ret.avatar)) {
+          ret.profilePhoto = ret.image || ret.avatar;
+        }
+        delete ret.image;
+        delete ret.avatar;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: false,
+      transform: (doc, ret) => {
+        delete ret.__v;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpires;
+        if (!ret.profilePhoto && (ret.image || ret.avatar)) {
+          ret.profilePhoto = ret.image || ret.avatar;
+        }
+        delete ret.image;
+        delete ret.avatar;
+        return ret;
+      },
+    },
   }
 );
 

@@ -5,23 +5,56 @@ const complaintSchema = new mongoose.Schema(
   {
     id: { type: Number, unique: true, index: true },
     complaintNumber: { type: String, index: true }, // e.g. "CMP-2026-001"
-    complaintId: { type: mongoose.Schema.Types.Mixed, index: true },     // Sequential numeric ID: 1, 2, 3, 4...
+    complaintId: { type: mongoose.Schema.Types.Mixed, index: true }, // Sequential numeric ID: 1, 2, 3, 4...
 
-    // Complaint Target Type
+    // Complaint Target Type: 'Member' or 'Other'
     complaintAgainst: {
       type: String,
-      default: 'Member', // 'Member' | 'Other' | 'Non-Member' | 'Visitor'
+      enum: ['Member', 'Other', 'Person', 'Non-Member'],
+      default: 'Member',
       trim: true,
     },
 
-    // Complainant Details (COMPLAINT BY)
+    // Complainant Details (COMPLAINT BY - Registered Member)
     complaintBy: {
-      memberId: { type: mongoose.Schema.Types.Mixed, default: 12 },
-      name: { type: String, default: 'Ramesh Mehta' },
-      business: { type: String, default: 'Mehta Jewellers' },
-      mobile: { type: String, default: '9737126164' },
-      email: { type: String, default: 'ramesh@gmail.com' },
-      avatar: { type: String, default: '/uploads/members/ramesh.jpg' },
+      _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', default: null },
+      memberObjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', default: null },
+      memberId: { type: mongoose.Schema.Types.Mixed, default: null },
+      membershipId: { type: String, default: '' },
+      name: { type: String, default: '' },
+      business: { type: String, default: '' },
+      mobile: { type: String, default: '' },
+      email: { type: String, default: '' },
+      city: { type: String, default: 'Ahmedabad' },
+      address: { type: String, default: '' },
+      avatar: { type: String, default: null },
+    },
+
+    // Option 1: Complaint Against Registered Member (Target Member)
+    targetMemberObjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', default: null },
+    targetMemberId: { type: mongoose.Schema.Types.Mixed, default: null },
+    targetMember: {
+      _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', default: null },
+      memberObjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', default: null },
+      memberId: { type: mongoose.Schema.Types.Mixed, default: null },
+      membershipId: { type: String, default: '' },
+      name: { type: String, default: '' },
+      business: { type: String, default: '' },
+      mobile: { type: String, default: '' },
+      email: { type: String, default: '' },
+      city: { type: String, default: 'Ahmedabad' },
+      address: { type: String, default: '' },
+      avatar: { type: String, default: null },
+    },
+
+    // Option 2: Complaint Against Another Person (External Non-Member)
+    againstPerson: {
+      name: { type: String, default: null },
+      mobile: { type: String, default: null },
+      email: { type: String, default: null },
+      gstNumber: { type: String, default: null },
+      address: { type: String, default: null },
+      company: { type: String, default: null },
     },
 
     // Complaint Core Information
@@ -54,18 +87,18 @@ const complaintSchema = new mongoose.Schema(
 
     // Incident & Financial Details
     complaintDetails: {
-      incidentDate: { type: String, default: '2026-09-03' },
-      incidentTime: { type: String, default: '14:30' },
+      incidentDate: { type: String, default: '' },
+      incidentTime: { type: String, default: '' },
       location: { type: String, default: 'Ahmedabad' },
       priority: { type: String, default: 'High' },
       proofAvailable: { type: Boolean, default: true },
-      amountInvolved: { type: Number, default: 450000 },
+      amountInvolved: { type: Number, default: 0 },
     },
 
     // Description Details
     description: {
-      issueSummary: { type: String, default: 'Payment not received for gold jewellery order' },
-      detailedDescription: { type: String, default: 'Payment has not been received despite multiple reminders.' },
+      issueSummary: { type: String, default: '' },
+      detailedDescription: { type: String, default: '' },
     },
 
     // Media
@@ -85,10 +118,16 @@ const complaintSchema = new mongoose.Schema(
     updatedBy: { type: mongoose.Schema.Types.Mixed, default: null },
 
     // Backward-compatibility references
-    targetMemberId: { type: mongoose.Schema.Types.Mixed, default: null },
     member: {
       id: { type: mongoose.Schema.Types.Mixed, default: null },
+      _id: { type: mongoose.Schema.Types.Mixed, default: null },
       name: { type: String, default: '' },
+      business: { type: String, default: '' },
+      mobile: { type: String, default: '' },
+      email: { type: String, default: '' },
+      address: { type: String, default: '' },
+      gstNumber: { type: String, default: null },
+      avatar: { type: String, default: null },
     },
     resolutionNotes: { type: String, default: '' },
   },
@@ -97,7 +136,6 @@ const complaintSchema = new mongoose.Schema(
     toJSON: {
       virtuals: false,
       transform: (doc, ret) => {
-        delete ret._id;
         delete ret.__v;
         return ret;
       },
@@ -105,7 +143,6 @@ const complaintSchema = new mongoose.Schema(
     toObject: {
       virtuals: false,
       transform: (doc, ret) => {
-        delete ret._id;
         delete ret.__v;
         return ret;
       },

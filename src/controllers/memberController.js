@@ -7,6 +7,7 @@ export const getMembers = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
+    message: 'Members fetched successfully',
     data: result.data,
     pagination: result.pagination,
     counts: result.counts,
@@ -23,6 +24,15 @@ export const getMemberById = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     data: member,
+  });
+});
+
+export const getMemberIdCard = asyncHandler(async (req, res) => {
+  const cardData = await MemberService.getMemberIdCard(req.params.id);
+  return res.status(200).json({
+    success: true,
+    message: 'Member ID card fetched successfully',
+    data: cardData,
   });
 });
 

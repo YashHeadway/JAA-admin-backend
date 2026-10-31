@@ -2,8 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { PostService } from '../services/postService.js';
 
 export const getPosts = asyncHandler(async (req, res) => {
-  const { search, mediaType, location, isPinned, page, limit } = req.query;
-  const result = await PostService.getPosts({ search, mediaType, location, isPinned, page, limit });
+  const { search, mediaType, location, isPinned, status, page, limit, full } = req.query;
+  const result = await PostService.getPosts({ search, mediaType, location, isPinned, status, page, limit, full });
 
   return res.status(200).json({
     success: true,
@@ -22,20 +22,18 @@ export const getPostById = asyncHandler(async (req, res) => {
 });
 
 export const createPost = asyncHandler(async (req, res) => {
-  const created = await PostService.createPost(req.body);
+  const created = await PostService.createPost(req.body, req.user);
   return res.status(201).json({
     success: true,
-    status: true,
     message: 'Post created successfully',
     data: created,
   });
 });
 
 export const updatePost = asyncHandler(async (req, res) => {
-  const updated = await PostService.updatePost(req.params.id, req.body);
+  const updated = await PostService.updatePost(req.params.id, req.body, req.user);
   return res.status(200).json({
     success: true,
-    status: true,
     message: 'Post updated successfully',
     data: updated,
   });
