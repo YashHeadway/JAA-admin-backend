@@ -8,9 +8,9 @@ export const getMembers = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Members fetched successfully',
-    data: result.data,
     pagination: result.pagination,
     counts: result.counts,
+    data: result.data,
   });
 });
 
@@ -81,5 +81,16 @@ export const createMember = asyncHandler(async (req, res) => {
     status: true,
     message: 'Member created successfully',
     data: created,
+  });
+});
+
+export const bulkCreateMembers = asyncHandler(async (req, res) => {
+  const members = Array.isArray(req.body) ? req.body : req.body.members;
+  const result = await MemberService.bulkCreateMembers(members);
+  return res.status(201).json({
+    success: true,
+    status: true,
+    message: `Successfully imported ${result.importedCount} members.`,
+    ...result,
   });
 });

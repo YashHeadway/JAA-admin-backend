@@ -165,16 +165,34 @@ export class MemberService {
       ? memberData.rejectionReason
       : (memberData.reason !== undefined ? memberData.reason : '');
 
+    const name = (memberData.name || memberData.fullName || '').trim();
+    const business = (memberData.business || memberData.businessName || '').trim();
+    const mobile = (memberData.mobile || memberData.phone || '').trim();
+    const avatar = memberData.avatar || memberData.image || memberData.profilePhoto || null;
+
+    // When admin creates any member, status automatically takes 'approved'
+    // If explicitly provided as 'rejected', it remains 'rejected', otherwise automatically 'approved'
+    let rawStatus = memberData.status;
+    if (typeof rawStatus === 'string') {
+      rawStatus = rawStatus.trim().toLowerCase();
+    }
+    const status = (rawStatus === 'rejected') ? 'rejected' : 'approved';
+    const cardStatus = status === 'rejected' ? 'inactive' : 'active';
+
     const buildPayload = (assignedId) => {
       const mid = memberData.membershipId || `JBAD${150 + assignedId}`;
       const joinedDate = formatDateOnly(memberData.joinedOn || new Date());
-      const cardStatus = memberData.status === 'rejected' ? 'inactive' : 'active';
       return {
+        ...memberData,
         id: assignedId,
         membershipId: mid,
+        name: name || memberData.name,
+        business: business || memberData.business,
+        mobile: mobile || memberData.mobile,
+        avatar,
         joinedOn: joinedDate,
-        status: memberData.status || 'pending',
-        ...memberData,
+        status,
+        rejectionReason: status === 'rejected' ? rejectionReason : '',
         idCard: {
           cardNumber: mid,
           status: memberData.idCard?.status || cardStatus,
@@ -182,7 +200,6 @@ export class MemberService {
           validUntil: memberData.idCard?.validUntil || null,
           qrCode: memberData.idCard?.qrCode || `https://yourdomain.com/verify/${mid}`,
         },
-        rejectionReason,
       };
     };
 
@@ -196,5 +213,37 @@ export class MemberService {
       }
       throw err;
     }
+  }
+
+  static async bulkCreateMembers(membersList) {
+    if (!Array.isArray(membersList) || membersList.length === 0) {
+      throw ApiError.badRequest('No member records provided for import');
+    }
+
+    const createdMembers = [];
+    const errors = [];
+
+    for (let i = 0; i < membersList.length; i++) {
+      const row = membersList[i];
+      try {
+        const created = await this.createMember(row);
+        createdMembers.push(created);
+      } catch (err) {
+        errors.push({
+          row: i + 1,
+          name: row.name || row.fullName || 'Unknown',
+          error: err.message,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      total: membersList.length,
+      importedCount: createdMembers.length,
+      failedCount: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+      data: createdMembers,
+    };
   }
 }

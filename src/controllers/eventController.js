@@ -7,8 +7,8 @@ export const getEvents = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    data: result.data,
     pagination: result.pagination,
+    data: result.data,
   });
 });
 

@@ -12,8 +12,8 @@ export const getAllAdminProfiles = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Admin profiles fetched successfully',
-    total: result.total !== undefined ? result.total : result.length,
     pagination: result.pagination,
+    total: result.total !== undefined ? result.total : result.length,
     data: result.data || result,
   });
 });

@@ -8,6 +8,7 @@ import {
   updateMember,
   deleteMember,
   createMember,
+  bulkCreateMembers,
 } from '../controllers/memberController.js';
 import { validate } from '../middlewares/validateMiddleware.js';
 import { handleFormData } from '../middlewares/uploadMiddleware.js';
@@ -28,6 +29,10 @@ router.get('/:id/id-card', getMemberIdCard);
 router.get('/:id/idcard', getMemberIdCard);
 
 router.get('/:id', getMemberById);
+
+// Bulk import members
+router.post('/bulk', handleFormData(), bulkCreateMembers);
+router.post('/import', handleFormData(), bulkCreateMembers);
 
 // Create Member (supports both JSON and form-data with optional avatar)
 router.post('/', handleFormData('avatar'), validate(createMemberSchema), createMember);

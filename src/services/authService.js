@@ -477,6 +477,29 @@ export class AuthService {
   }
 
   /**
+   * Verify password reset token and return account email
+   */
+  static async verifyResetToken(token) {
+    if (!token) {
+      throw ApiError.badRequest('Reset token is required');
+    }
+    const now = new Date();
+    const query = { resetPasswordToken: token, resetPasswordExpires: { $gt: now } };
+    let account = await AdminUser.findOne(query);
+    if (!account) {
+      account = await User.findOne(query);
+    }
+    if (!account) {
+      throw ApiError.badRequest('Invalid or expired password reset token.');
+    }
+    return {
+      valid: true,
+      email: account.email,
+      name: account.name || 'User',
+    };
+  }
+
+  /**
    * Change user password given currentPassword, newPassword, and confirmNewPassword.
    */
   static async changePassword({ userId, email, currentPassword, newPassword, confirmNewPassword }) {

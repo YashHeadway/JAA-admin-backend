@@ -9,8 +9,8 @@ export const getCommittee = asyncHandler(async (req, res) => {
     success: true,
     status: true,
     message: 'Committees retrieved successfully',
-    data: result.data,
     pagination: result.pagination,
+    data: result.data,
   });
 });
 

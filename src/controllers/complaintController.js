@@ -2,15 +2,22 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ComplaintService } from '../services/complaintService.js';
 
 export const getComplaints = asyncHandler(async (req, res) => {
-  const { search, status, priority, page, limit } = req.query;
-  const result = await ComplaintService.getComplaints({ search, status, priority, page, limit });
+  const { search, status, priority, page, limit, complaintAgainst, tab } = req.query;
+  const result = await ComplaintService.getComplaints({
+    search,
+    status,
+    priority,
+    page,
+    limit,
+    complaintAgainst: complaintAgainst || tab,
+  });
 
   return res.status(200).json({
     success: true,
     message: 'Complaints fetched successfully',
+    pagination: result.pagination,
     summary: result.summary,
     data: result.data,
-    pagination: result.pagination,
   });
 });
 

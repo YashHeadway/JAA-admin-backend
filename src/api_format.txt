@@ -519,6 +519,19 @@ Response (200 OK):
 {
   "success": true,
   "message": "Members fetched successfully",
+  "pagination": {
+    "total_items": 45,
+    "total_page": 3,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": true
+  },
+  "counts": {
+    "all": 45,
+    "pending": 5,
+    "approved": 38,
+    "rejected": 2
+  },
   "data": [
     {
       "id": 18,
@@ -544,21 +557,7 @@ Response (200 OK):
       "createdAt": "28-10-2026 03:13 pm",
       "updatedAt": "30-10-2026 12:30 pm"
     }
-  ],
-  "pagination": {
-    "total": 45,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrev": false
-  },
-  "counts": {
-    "all": 45,
-    "pending": 5,
-    "approved": 38,
-    "rejected": 2
-  }
+  ]
 }
 
 
@@ -631,7 +630,7 @@ Request Body:
   "address": "C.G. Road",                // (Optional) String
   "businessType": "Wholesaler",          // (Optional) String (default: 'Retailer')
   "avatar": "/uploads/avatar.png",       // (Optional) String or File upload
-  "status": "approved",                  // (Optional) 'pending' | 'approved' | 'rejected' (default: 'pending')
+  "status": "approved",                  // (Optional) 'pending' | 'approved' | 'rejected' (default: 'approved')
   "rejectionReason": ""                  // (Optional) String - rejection reason or notes (or 'reason')
 }
 
@@ -787,6 +786,13 @@ Query Params:
 Response (200 OK):
 {
   "success": true,
+  "pagination": {
+    "total_items": 1,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": false
+  },
   "data": [
     {
       "id": 1,
@@ -804,15 +810,7 @@ Response (200 OK):
       "createdAt": "23-10-2026 12:59 pm",
       "updatedAt": "23-10-2026 12:59 pm"
     }
-  ],
-  "pagination": {
-    "total": 1,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  ]
 }
 
 
@@ -945,6 +943,13 @@ Query Params:
 Response (200 OK):
 {
   "success": true,
+  "pagination": {
+    "total_items": 8,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": false
+  },
   "data": [
     {
       "id": 1,
@@ -962,15 +967,7 @@ Response (200 OK):
       "createdAt": "21-10-2026 05:18 pm",
       "updatedAt": "21-10-2026 05:18 pm"
     }
-  ],
-  "pagination": {
-    "total": 8,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  ]
 }
 
 
@@ -1089,6 +1086,13 @@ Query Params:
 Response (200 OK):
 {
   "success": true,
+  "pagination": {
+    "total_items": 5,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": false
+  },
   "data": [
     {
       "id": 1,
@@ -1103,15 +1107,7 @@ Response (200 OK):
       "createdAt": "21-10-2026 05:22 pm",
       "updatedAt": "21-10-2026 05:22 pm"
     }
-  ],
-  "pagination": {
-    "total": 5,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  ]
 }
 
 
@@ -1217,6 +1213,13 @@ Query Params:
 Response (200 OK):
 {
   "success": true,
+  "pagination": {
+    "total_items": 15,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": false
+  },
   "data": [
     {
       "id": 1,
@@ -1229,15 +1232,7 @@ Response (200 OK):
       "createdAt": "21-10-2026 05:25 pm",
       "updatedAt": "21-10-2026 05:25 pm"
     }
-  ],
-  "pagination": {
-    "total": 15,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  ]
 }
 
 
@@ -1288,7 +1283,21 @@ Response (200 OK):
 {
   "success": true,
   "message": "Leads fetched successfully",
+  "pagination": {
+    "total_items": 1,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": false
+  },
   "data": {
+    "pagination": {
+      "total_items": 1,
+      "total_page": 1,
+      "current_page": 1,
+      "item_per_page": 20,
+      "has_more": false
+    },
     "leads": [
       {
         "id": 1,
@@ -1299,15 +1308,7 @@ Response (200 OK):
         "createdAt": "2026-10-31T10:00:00.000Z",
         "updatedAt": "2026-10-31T10:00:00.000Z"
       }
-    ],
-    "pagination": {
-      "total": 1,
-      "page": 1,
-      "limit": 20,
-      "totalPages": 1,
-      "hasNext": false,
-      "hasPrev": false
-    }
+    ]
   }
 }
 
@@ -1524,27 +1525,93 @@ Response (200 OK):
 {
   "success": true,
   "message": "Complaints fetched successfully",
+  "pagination": {
+    "total_items": 25,
+    "total_page": 2,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": true
+  },
   "summary": {
-    "totalComplaints": 5,
-    "againstMember": 3,
-    "againstOther": 2
+    "totalComplaints": 25,
+    "againstMember": 14,
+    "againstOther": 11
   },
   "data": [
     {
-      "complaintId": 5,
-      "complaintAgainst": "Other",
+      "complaintId": 23,
+      "id": 23,
+      "complaintNumber": "CMP-2026-023",
+      "complaintAgainst": "Member",
       "complaintBy": {
-        "memberId": 17,
-        "name": "Paresh Shah",
-        "business": "Shah Brothers Jewellers",
-        "avatar": "/uploads/members/paresh.jpg"
+        "_id": "6ad8a5a94ff39d392932da31",
+        "memberObjectId": "6ad8a5a94ff39d392932da31",
+        "memberId": 2,
+        "membershipId": "JBAD152",
+        "name": "yash soni",
+        "business": "Mehta Jewels & Bullion",
+        "mobile": "9737126164",
+        "email": "yashsoni3012@gmail.com",
+        "city": "Ahmedabad",
+        "address": "C 402 Hirabhai tower, Maninagar, Ahmedabad",
+        "avatar": "/uploads/screenshot-2026-10-21-115244-1792587156090.png"
       },
-      "complaintType": "Unauthorized Trading",
-      "priority": "Medium",
-      "status": "Resolved",
+      "targetMember": {
+        "_id": "6ad8a51e4ff39d392932da30",
+        "memberObjectId": "6ad8a51e4ff39d392932da30",
+        "memberId": 1,
+        "membershipId": "JBAD151",
+        "name": "Rajesh Mehta",
+        "business": "Postman Form Data Jewellers",
+        "mobile": "9876501234",
+        "email": "rajesh.mehta@mehtajewels.com",
+        "city": "Surat",
+        "address": "104, Golden Plaza, C.G. Road, Ahmedabad, Gujarat - 380009",
+        "avatar": null
+      },
+      "againstPerson": null,
+      "member": {
+        "id": 1,
+        "_id": "6ad8a51e4ff39d392932da30",
+        "name": "Rajesh Mehta",
+        "business": "Postman Form Data Jewellers",
+        "mobile": "9876501234",
+        "email": "rajesh.mehta@mehtajewels.com",
+        "address": "104, Golden Plaza, C.G. Road, Ahmedabad, Gujarat - 380009",
+        "avatar": null
+      },
+      "complaintType": "Delivery Delay & Stock Shortage",
+      "priority": "Low",
+      "status": "Under Review",
+      "hasPreviousInteraction": true,
+      "preferredResolution": "Compensation for revenue loss during festival rush.",
+      "complaintDetails": {
+        "incidentDate": "2026-10-24",
+        "incidentTime": "17:45",
+        "location": "Navrangpura, Ahmedabad",
+        "priority": "Low",
+        "proofAvailable": true,
+        "amountInvolved": 185000
+      },
+      "description": {
+        "issueSummary": "Consignment delivery delayed by over 3 weeks",
+        "detailedDescription": "Diwali festival stock delivery was committed for 1st October but goods were received on 24th October causing revenue loss."
+      },
+      "media": [
+        {
+          "url": "/uploads/purchase-order.jpg",
+          "type": "Photo"
+        }
+      ],
       "updatedBy": null,
-      "createdAt": "10-10-2026 09:15 pm",
-      "updatedAt": "15-10-2026 09:30 pm"
+      "adminAction": {
+        "resolutionNotes": "",
+        "updatedBy": null,
+        "updatedAt": null
+      },
+      "resolutionNotes": "",
+      "createdAt": "30-10-2026 11:42 am",
+      "updatedAt": "30-10-2026 11:42 am"
     }
   ]
 }
@@ -1883,6 +1950,13 @@ Note: In the list endpoint, each post contains only the index [0] media item, po
 Response (200 OK):
 {
   "success": true,
+  "pagination": {
+    "total_items": 5,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": false
+  },
   "data": [
     {
       "id": 12,
@@ -1905,15 +1979,7 @@ Response (200 OK):
       "createdAt": "30-10-2026 02:30 pm",
       "status": "published"
     }
-  ],
-  "pagination": {
-    "total": 5,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 1,
-    "hasNext": false,
-    "hasPrev": false
-  }
+  ]
 }
 
 
@@ -2224,15 +2290,14 @@ HTTP Status: 200 OK (or 201 Created)
 {
   "success": true,
   "message": "Resource retrieved / operation successful",
-  "data": { ... },
   "pagination": {
-    "total": 100,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 7,
-    "hasNext": true,
-    "hasPrev": false
-  }
+    "total_items": 100,
+    "total_page": 5,
+    "current_page": 1,
+    "item_per_page": 20,
+    "has_more": true
+  },
+  "data": [ ... ]
 }
 
 [13.2] Standard Error Envelope (Operational errors)

@@ -11,6 +11,7 @@ import {
   forgotPassword,
   resetPassword,
   renderResetPasswordPage,
+  verifyResetToken,
   changePassword,
 } from '../controllers/authController.js';
 import { authenticate, authenticateOptional } from '../middlewares/authMiddleware.js';
@@ -82,6 +83,18 @@ router.post(
 router.get(
   ['/reset-password', '/resetPassword', '/admin/reset-password', '/admin/resetPassword', '/admin-reset-password', '/adminResetPassword'],
   renderResetPasswordPage
+);
+router.get(
+  [
+    '/verify-reset-token',
+    '/verifyResetToken',
+    '/admin/verify-reset-token',
+    '/admin/verifyResetToken',
+    '/verify-token',
+    '/admin/verify-token',
+    '/verify-reset-token/:token',
+  ],
+  verifyResetToken
 );
 router.post(
   [

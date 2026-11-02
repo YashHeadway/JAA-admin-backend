@@ -58,116 +58,11 @@ export class ComplaintService {
   }
 
   /**
-   * Format a single complaint into the concise summary listing format for GET /api/complaints
+   * Format a single complaint into the concise summary listing format for GET /api/complaints.
+   * Delegates to formatDetailItem to ensure 100% exact parity between list and detail APIs.
    */
   static async formatListItem(complaintDoc) {
-    if (!complaintDoc) return null;
-    const doc = complaintDoc._doc ? { ...complaintDoc._doc } : (complaintDoc.toObject ? complaintDoc.toObject() : { ...complaintDoc });
-
-    const complaintId = doc.complaintId !== undefined && doc.complaintId !== null && !isNaN(Number(doc.complaintId))
-      ? Number(doc.complaintId)
-      : (doc.id !== undefined && !isNaN(Number(doc.id)) ? Number(doc.id) : 1);
-
-    const isAgainstMember = String(doc.complaintAgainst || 'Member').toLowerCase() === 'member';
-
-    // 1. Resolve Complainant (complaintBy)
-    let memberId = doc.complaintBy?.memberId !== undefined ? doc.complaintBy.memberId : (doc.complainant?.memberId || doc.complainantId || 1);
-    let memberObjectId = doc.complaintBy?.memberObjectId || doc.complaintBy?._id || null;
-    let name = doc.complaintBy?.name || doc.complainant?.name || '';
-    let business = doc.complaintBy?.business || doc.complainant?.business || '';
-    let avatar = doc.complaintBy?.avatar || doc.complainant?.avatar || null;
-    let membershipId = doc.complaintBy?.membershipId || '';
-
-    if ((!name || !memberObjectId) && (memberId || memberObjectId)) {
-      const found = await this.findMember(memberObjectId || memberId);
-      if (found) {
-        memberObjectId = found._id.toString();
-        memberId = found.id;
-        membershipId = found.membershipId || '';
-        name = found.name;
-        business = found.business || '';
-        avatar = found.avatar || null;
-      }
-    }
-
-    const complaintBy = {
-      _id: memberObjectId ? memberObjectId.toString() : null,
-      memberObjectId: memberObjectId ? memberObjectId.toString() : null,
-      memberId: memberId !== null && !isNaN(Number(memberId)) ? Number(memberId) : memberId,
-      membershipId,
-      name: name || 'Rajesh Mehta',
-      business: business || 'Mehta Jewellers',
-      avatar: avatar || '/uploads/members/ramesh.jpg',
-    };
-
-    // 2. Resolve Target (Option 1: targetMember, Option 2: againstPerson)
-    let targetMember = null;
-    let againstPerson = null;
-
-    if (isAgainstMember) {
-      let tId = doc.targetMember?.memberId || doc.targetMemberId || doc.member?.id || null;
-      let tObjectId = doc.targetMember?.memberObjectId || doc.targetMember?._id || doc.targetMemberObjectId || null;
-      let tName = doc.targetMember?.name || doc.member?.name || '';
-      let tBusiness = doc.targetMember?.business || doc.member?.business || '';
-      let tAvatar = doc.targetMember?.avatar || doc.member?.avatar || null;
-      let tMembershipId = doc.targetMember?.membershipId || '';
-
-      if ((!tName || !tObjectId) && (tId || tObjectId)) {
-        const found = await this.findMember(tObjectId || tId);
-        if (found) {
-          tObjectId = found._id.toString();
-          tId = found.id;
-          tMembershipId = found.membershipId || '';
-          tName = found.name;
-          tBusiness = found.business || '';
-          tAvatar = found.avatar || null;
-        }
-      }
-
-      if (tName || tId || tObjectId) {
-        targetMember = {
-          _id: tObjectId ? tObjectId.toString() : null,
-          memberObjectId: tObjectId ? tObjectId.toString() : null,
-          memberId: tId !== null && !isNaN(Number(tId)) ? Number(tId) : tId,
-          membershipId: tMembershipId,
-          name: tName || 'Yash Soni',
-          business: tBusiness || 'Mehta Jewels & Bullion',
-          avatar: tAvatar || null,
-        };
-      }
-    } else {
-      const p = doc.againstPerson || {};
-      againstPerson = {
-        name: p.name || doc.member?.name || '',
-        mobile: p.mobile || doc.member?.mobile || '',
-        email: p.email !== undefined ? p.email : null,
-        gstNumber: p.gstNumber !== undefined ? p.gstNumber : null,
-        address: p.address !== undefined ? p.address : null,
-        company: p.company || doc.member?.business || null,
-      };
-    }
-
-    const priority = doc.complaintDetails?.priority || doc.priority || 'High';
-    const status = doc.status || 'Open';
-    const updatedBy = doc.updatedBy !== undefined ? doc.updatedBy : (doc.adminAction?.updatedBy !== undefined ? doc.adminAction.updatedBy : null);
-    const createdAt = formatDateTime(doc.createdAt);
-    const updatedAt = formatDateTime(doc.updatedAt || doc.createdAt);
-
-    return {
-      complaintId,
-      id: complaintId,
-      complaintNumber: doc.complaintNumber || `CMP-2026-${String(complaintId).padStart(3, '0')}`,
-      complaintAgainst: isAgainstMember ? 'Member' : 'Other',
-      complaintBy,
-      targetMember,
-      againstPerson,
-      complaintType: doc.complaintType || doc.type || 'Payment Dispute',
-      priority,
-      status,
-      updatedBy,
-      createdAt,
-      updatedAt,
-    };
+    return await this.formatDetailItem(complaintDoc);
   }
 
   /**
@@ -184,28 +79,30 @@ export class ComplaintService {
     const isAgainstMember = String(doc.complaintAgainst || 'Member').toLowerCase() === 'member';
 
     // 1. Resolve Complainant (complaintBy)
-    let memberId = doc.complaintBy?.memberId !== undefined ? doc.complaintBy.memberId : (doc.complainant?.memberId || doc.complainantId || 1);
+    let memberId = doc.complaintBy?.memberId !== undefined && doc.complaintBy.memberId !== null
+      ? doc.complaintBy.memberId
+      : (doc.complainant?.memberId || doc.complainantId || doc.complaintBy?.id || null);
     let memberObjectId = doc.complaintBy?.memberObjectId || doc.complaintBy?._id || null;
-    let name = doc.complaintBy?.name || doc.complainant?.name || '';
-    let business = doc.complaintBy?.business || doc.complainant?.business || '';
-    let mobile = doc.complaintBy?.mobile || doc.complainant?.mobile || '';
-    let email = doc.complaintBy?.email || doc.complainant?.email || '';
-    let city = doc.complaintBy?.city || 'Ahmedabad';
-    let address = doc.complaintBy?.address || '';
+    let name = (doc.complaintBy?.name || doc.complainant?.name || '').trim();
+    let business = (doc.complaintBy?.business || doc.complainant?.business || '').trim();
+    let mobile = (doc.complaintBy?.mobile || doc.complainant?.mobile || '').trim();
+    let email = (doc.complaintBy?.email || doc.complainant?.email || '').trim();
+    let city = (doc.complaintBy?.city || '').trim();
+    let address = (doc.complaintBy?.address || '').trim();
     let avatar = doc.complaintBy?.avatar || doc.complainant?.avatar || null;
-    let membershipId = doc.complaintBy?.membershipId || '';
+    let membershipId = (doc.complaintBy?.membershipId || '').trim();
 
-    if ((!name || !mobile || !memberObjectId) && (memberId || memberObjectId)) {
+    if (memberId || memberObjectId) {
       const found = await this.findMember(memberObjectId || memberId);
       if (found) {
-        memberObjectId = found._id.toString();
-        memberId = found.id;
-        membershipId = found.membershipId || '';
-        name = name || found.name;
+        memberObjectId = memberObjectId || (found._id ? found._id.toString() : null);
+        memberId = memberId !== null && memberId !== undefined ? memberId : found.id;
+        membershipId = membershipId || found.membershipId || '';
+        name = name || found.name || '';
         business = business || found.business || '';
         mobile = mobile || found.mobile || '';
         email = email || found.email || '';
-        city = city || found.city || 'Ahmedabad';
+        city = city || found.city || '';
         address = address || found.address || '';
         avatar = avatar || found.avatar || null;
       }
@@ -216,13 +113,13 @@ export class ComplaintService {
       memberObjectId: memberObjectId ? memberObjectId.toString() : null,
       memberId: memberId !== null && !isNaN(Number(memberId)) ? Number(memberId) : memberId,
       membershipId,
-      name: name || 'Rajesh Mehta',
-      business: business || 'Mehta Jewellers',
-      mobile: mobile || '9876501234',
-      email: email || 'rajesh@mehtajewellers.com',
-      city: city || 'Ahmedabad',
-      address: address || 'Manek Chowk, Ahmedabad',
-      avatar: avatar || '/uploads/members/ramesh.jpg',
+      name,
+      business,
+      mobile,
+      email,
+      city,
+      address,
+      avatar,
     };
 
     // 2. Resolve Target (Option 1: targetMember, Option 2: againstPerson)
@@ -232,53 +129,55 @@ export class ComplaintService {
     if (isAgainstMember) {
       let tId = doc.targetMember?.memberId || doc.targetMemberId || doc.member?.id || null;
       let tObjectId = doc.targetMember?.memberObjectId || doc.targetMember?._id || doc.targetMemberObjectId || null;
-      let tName = doc.targetMember?.name || doc.member?.name || '';
-      let tBusiness = doc.targetMember?.business || doc.member?.business || '';
-      let tMobile = doc.targetMember?.mobile || doc.member?.mobile || '';
-      let tEmail = doc.targetMember?.email || doc.member?.email || '';
-      let tCity = doc.targetMember?.city || 'Ahmedabad';
-      let tAddress = doc.targetMember?.address || doc.member?.address || '';
+      let tName = (doc.targetMember?.name || doc.member?.name || '').trim();
+      let tBusiness = (doc.targetMember?.business || doc.member?.business || '').trim();
+      let tMobile = (doc.targetMember?.mobile || doc.member?.mobile || '').trim();
+      let tEmail = (doc.targetMember?.email || doc.member?.email || '').trim();
+      let tCity = (doc.targetMember?.city || '').trim();
+      let tAddress = (doc.targetMember?.address || doc.member?.address || '').trim();
       let tAvatar = doc.targetMember?.avatar || doc.member?.avatar || null;
-      let tMembershipId = doc.targetMember?.membershipId || '';
+      let tMembershipId = (doc.targetMember?.membershipId || '').trim();
 
-      if ((!tName || !tObjectId) && (tId || tObjectId)) {
+      if (tId || tObjectId) {
         const found = await this.findMember(tObjectId || tId);
         if (found) {
-          tObjectId = found._id.toString();
-          tId = found.id;
-          tMembershipId = found.membershipId || '';
-          tName = tName || found.name;
+          tObjectId = tObjectId || (found._id ? found._id.toString() : null);
+          tId = tId !== null && tId !== undefined ? tId : found.id;
+          tMembershipId = tMembershipId || found.membershipId || '';
+          tName = tName || found.name || '';
           tBusiness = tBusiness || found.business || '';
           tMobile = tMobile || found.mobile || '';
           tEmail = tEmail || found.email || '';
-          tCity = tCity || found.city || 'Ahmedabad';
+          tCity = tCity || found.city || '';
           tAddress = tAddress || found.address || '';
           tAvatar = tAvatar || found.avatar || null;
         }
       }
 
-      targetMember = {
-        _id: tObjectId ? tObjectId.toString() : null,
-        memberObjectId: tObjectId ? tObjectId.toString() : null,
-        memberId: tId !== null && !isNaN(Number(tId)) ? Number(tId) : tId,
-        membershipId: tMembershipId,
-        name: tName || 'Yash Soni',
-        business: tBusiness || 'Mehta Jewels & Bullion',
-        mobile: tMobile || '9737126164',
-        email: tEmail || 'yashsoni3012@gmail.com',
-        city: tCity || 'Ahmedabad',
-        address: tAddress || 'C 402 Hirabhai tower, Maninagar, Ahmedabad',
-        avatar: tAvatar || null,
-      };
+      if (tName || tId || tObjectId) {
+        targetMember = {
+          _id: tObjectId ? tObjectId.toString() : null,
+          memberObjectId: tObjectId ? tObjectId.toString() : null,
+          memberId: tId !== null && !isNaN(Number(tId)) ? Number(tId) : tId,
+          membershipId: tMembershipId,
+          name: tName,
+          business: tBusiness,
+          mobile: tMobile,
+          email: tEmail,
+          city: tCity,
+          address: tAddress,
+          avatar: tAvatar,
+        };
+      }
     } else {
-      const p = doc.againstPerson || {};
+      const p = doc.againstPerson || doc.complaintPerson || doc.person || {};
       againstPerson = {
-        name: p.name || doc.member?.name || '',
-        mobile: p.mobile || doc.member?.mobile || '',
+        name: (p.name || doc.member?.name || '').trim(),
+        mobile: (p.mobile || doc.member?.mobile || '').trim(),
         email: p.email !== undefined ? p.email : null,
         gstNumber: p.gstNumber !== undefined ? p.gstNumber : null,
         address: p.address !== undefined ? p.address : null,
-        company: p.company || doc.member?.business || null,
+        company: p.company || p.business || doc.member?.business || null,
       };
     }
 
@@ -292,55 +191,49 @@ export class ComplaintService {
       email: targetMember.email,
       address: targetMember.address,
       avatar: targetMember.avatar,
-    } : {
+    } : (!isAgainstMember && againstPerson ? {
       id: null,
       _id: null,
-      name: againstPerson?.name || '',
-      business: againstPerson?.company || null,
-      mobile: againstPerson?.mobile || '',
-      email: againstPerson?.email || null,
-      gstNumber: againstPerson?.gstNumber || null,
-      address: againstPerson?.address || null,
+      name: againstPerson.name || '',
+      business: againstPerson.company || null,
+      mobile: againstPerson.mobile || '',
+      email: againstPerson.email || null,
+      gstNumber: againstPerson.gstNumber || null,
+      address: againstPerson.address || null,
       avatar: null,
-    };
+    } : null);
 
     // Incident Details
     const rawAmt = doc.complaintDetails?.amountInvolved !== undefined
       ? doc.complaintDetails.amountInvolved
-      : (doc.financialAmount !== undefined ? doc.financialAmount : 450000);
+      : (doc.financialAmount !== undefined ? doc.financialAmount : 0);
     const amountInvolved = typeof rawAmt === 'number' ? rawAmt : Number(String(rawAmt).replace(/[^0-9.-]+/g, '')) || 0;
+    const priority = doc.complaintDetails?.priority || doc.priority || 'High';
 
     const complaintDetails = {
-      incidentDate: doc.complaintDetails?.incidentDate || doc.incidentDate || '2026-09-03',
-      incidentTime: doc.complaintDetails?.incidentTime || doc.incidentTime || '14:30',
+      incidentDate: doc.complaintDetails?.incidentDate || doc.incidentDate || '',
+      incidentTime: doc.complaintDetails?.incidentTime || doc.incidentTime || '',
       location: doc.complaintDetails?.location || doc.incidentLocation || 'Ahmedabad',
-      priority: doc.complaintDetails?.priority || doc.priority || 'High',
-      proofAvailable: doc.complaintDetails?.proofAvailable !== undefined ? Boolean(doc.complaintDetails.proofAvailable) : true,
+      priority,
+      proofAvailable: doc.complaintDetails?.proofAvailable !== undefined ? Boolean(doc.complaintDetails.proofAvailable) : false,
       amountInvolved,
     };
 
     // Description Details
     const description = {
-      issueSummary: doc.description?.issueSummary || doc.typeSubtitle || doc.executiveSummary || 'Payment not received for gold jewellery order',
-      detailedDescription: doc.description?.detailedDescription || (typeof doc.description === 'string' ? doc.description : '') || 'Payment has not been received despite multiple reminders.',
+      issueSummary: doc.description?.issueSummary || doc.typeSubtitle || doc.executiveSummary || (typeof doc.description === 'string' ? doc.description : '') || '',
+      detailedDescription: doc.description?.detailedDescription || (typeof doc.description === 'string' ? doc.description : '') || '',
     };
 
     // Media
     let media = [];
     if (Array.isArray(doc.media) && doc.media.length > 0) {
       media = doc.media.map((m) => ({
-        url: m.url || '',
-        type: m.type || 'Photo',
+        url: typeof m === 'string' ? m : (m.url || ''),
+        type: typeof m === 'object' && m.type ? m.type : 'Photo',
       }));
-    } else {
-      media = [
-        { url: '/uploads/payment-proof.jpg', type: 'Photo' },
-        { url: '/uploads/complaint-video.mp4', type: 'Video' },
-        { url: '/uploads/invoice.pdf', type: 'Document' },
-      ];
     }
 
-    const priority = doc.complaintDetails?.priority || doc.priority || 'High';
     const status = doc.status || 'Open';
     const updatedBy = doc.updatedBy !== undefined ? doc.updatedBy : (doc.adminAction?.updatedBy !== undefined ? doc.adminAction.updatedBy : null);
     const createdAt = formatDateTime(doc.createdAt);
@@ -377,8 +270,16 @@ export class ComplaintService {
     };
   }
 
-  static async getComplaints({ search = '', status = '', priority = '', page = 1, limit = 20 } = {}) {
+  static async getComplaints({ search = '', status = '', priority = '', page = 1, limit = 20, complaintAgainst = '' } = {}) {
     const filter = {};
+
+    if (complaintAgainst && complaintAgainst !== 'ALL' && complaintAgainst !== 'All') {
+      if (complaintAgainst.toLowerCase() === 'member') {
+        filter.complaintAgainst = /^member$/i;
+      } else if (complaintAgainst.toLowerCase() === 'other') {
+        filter.complaintAgainst = { $ne: 'Member' };
+      }
+    }
 
     if (status && status !== 'All') {
       filter.status = new RegExp(`^${status}$`, 'i');

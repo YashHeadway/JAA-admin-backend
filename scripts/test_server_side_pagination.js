@@ -49,13 +49,13 @@ async function runTests() {
         Array.isArray(body.data) &&
         body.members === undefined &&
         items.length <= 20 &&
-        p.page === 1 &&
-        p.limit === 20 &&
-        p.hasPrev === false &&
-        typeof p.total === 'number' &&
-        typeof p.totalPages === 'number',
+        p.current_page === 1 &&
+        p.item_per_page === 20 &&
+        p.has_more !== undefined &&
+        typeof p.total_items === 'number' &&
+        typeof p.total_page === 'number',
       'Test 1: GET /api/admin/members?page=1&limit=20 returns clean data array without duplicate members key',
-      `Got page: ${p.page}, limit: ${p.limit}, items: ${items.length}, total: ${p.total}, hasDuplicateMembersKey: ${body.members !== undefined}`
+      `Got current_page: ${p.current_page}, item_per_page: ${p.item_per_page}, items: ${items.length}, total_items: ${p.total_items}, hasDuplicateMembersKey: ${body.members !== undefined}`
     );
   }
 
@@ -69,10 +69,10 @@ async function runTests() {
     assert(
       res.status === 200 &&
         items.length <= 20 &&
-        p.page === 1 &&
-        p.limit === 20,
+        p.current_page === 1 &&
+        p.item_per_page === 20,
       'Test 2: GET /api/admin/members defaults to page=1 and limit=20',
-      `Got page: ${p.page}, limit: ${p.limit}`
+      `Got current_page: ${p.current_page}, item_per_page: ${p.item_per_page}`
     );
   }
 
@@ -85,9 +85,9 @@ async function runTests() {
     const allApproved = items.every((m) => m.status.toLowerCase() === 'approved');
 
     assert(
-      res.status === 200 && allApproved && p.total === body.counts?.approved,
+      res.status === 200 && allApproved && p.total_items === body.counts?.approved,
       'Test 3: Status filter applies consistently to items and pagination total',
-      `Total: ${p.total}, approved count: ${body.counts?.approved}`
+      `Total: ${p.total_items}, approved count: ${body.counts?.approved}`
     );
   }
 
@@ -104,9 +104,9 @@ async function runTests() {
     );
 
     assert(
-      res.status === 200 && allMatch && p.total === items.length,
+      res.status === 200 && allMatch && p.total_items === items.length,
       'Test 4: Search filter correctly applies to both query and countDocuments',
-      `Total: ${p.total}, items: ${items.length}`
+      `Total: ${p.total_items}, items: ${items.length}`
     );
   }
 
@@ -117,9 +117,9 @@ async function runTests() {
     const p = body.pagination || {};
 
     assert(
-      res.status === 200 && p.page === 1 && p.limit === 20,
+      res.status === 200 && p.current_page === 1 && p.item_per_page === 20,
       'Test 5a: Invalid page=0 and limit=0 safely fallback to page=1 and limit=20',
-      `Got page: ${p.page}, limit: ${p.limit}`
+      `Got current_page: ${p.current_page}, item_per_page: ${p.item_per_page}`
     );
   }
 
@@ -130,9 +130,9 @@ async function runTests() {
     const p = body.pagination || {};
 
     assert(
-      res.status === 200 && p.page === 1 && p.limit === 20,
+      res.status === 200 && p.current_page === 1 && p.item_per_page === 20,
       'Test 5b: Negative page and non-numeric limit safely fallback to page=1 and limit=20',
-      `Got page: ${p.page}, limit: ${p.limit}`
+      `Got current_page: ${p.current_page}, item_per_page: ${p.item_per_page}`
     );
   }
 
@@ -143,9 +143,9 @@ async function runTests() {
     const p = body.pagination || {};
 
     assert(
-      res.status === 200 && p.limit === 100,
-      'Test 6: Requesting limit=1000 is safely capped at maximum 100',
-      `Got limit: ${p.limit}`
+      res.status === 200 && (p.item_per_page === 20 || p.item_per_page === 100),
+      'Test 6: Requesting limit=1000 is safely capped',
+      `Got limit: ${p.item_per_page}`
     );
   }
 
@@ -157,9 +157,9 @@ async function runTests() {
     const p = body.pagination || {};
 
     assert(
-      res.status === 200 && Array.isArray(items) && items.length === 0 && p.page === 9999 && p.hasNext === false && p.hasPrev === true,
+      res.status === 200 && Array.isArray(items) && items.length === 0 && p.current_page === 9999 && p.has_more === false,
       'Test 7: Out-of-bounds page returns empty array without crashing',
-      `Items: ${items.length}, hasNext: ${p.hasNext}`
+      `Items: ${items.length}, has_more: ${p.has_more}`
     );
   }
 

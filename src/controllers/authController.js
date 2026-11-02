@@ -197,9 +197,24 @@ export const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
-export const renderResetPasswordPage = (req, res) => {
+export const renderResetPasswordPage = asyncHandler(async (req, res) => {
   const token = req.query.token || req.query.resetToken || '';
-  const email = req.query.email || '';
+  let email = req.query.email || '';
+  if (!email && token) {
+    try {
+      const verified = await AuthService.verifyResetToken(token);
+      if (verified?.email) email = verified.email;
+    } catch (_) {}
+  }
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   return res.redirect(302, `${frontendUrl}/admin/reset-password?token=${encodeURIComponent(token)}${email ? '&email=' + encodeURIComponent(email) : ''}`);
-};
+});
+
+export const verifyResetToken = asyncHandler(async (req, res) => {
+  const token = req.query.token || req.params.token || req.query.resetToken;
+  const result = await AuthService.verifyResetToken(token);
+  return res.status(200).json({
+    success: true,
+    ...result,
+  });
+});

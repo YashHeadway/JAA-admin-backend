@@ -24,23 +24,18 @@ export const getPagination = (query = {}, defaultLimit = DEFAULT_PAGE_LIMIT, max
 };
 
 /**
- * Formats standardized pagination metadata supporting both snake_case and camelCase conventions.
+ * Formats standardized pagination metadata.
+ * Only returns: total_items, total_page, current_page, item_per_page, has_more
  */
 export const formatPaginationMeta = (total, page, limit, extra = {}) => {
   const safeTotal = Math.max(0, parseInt(total, 10) || 0);
   const totalPages = Math.max(1, Math.ceil(safeTotal / limit));
   return {
-    total: safeTotal,
-    page,
-    limit,
-    totalPages,
     total_items: safeTotal,
     total_page: totalPages,
     current_page: page,
     item_per_page: limit,
     has_more: page < totalPages,
-    hasNext: page < totalPages,
-    hasPrev: page > 1,
     ...extra,
   };
 };

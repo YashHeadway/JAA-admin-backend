@@ -42,7 +42,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 1: GET /api/members?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -56,7 +55,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 2: GET /api/members (default) keeps 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -70,7 +68,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 3: GET /api/committee?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -84,7 +81,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 4: GET /api/events?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -98,7 +94,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 5: GET /api/groups?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -112,7 +107,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 6: GET /api/broadcasts?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -123,13 +117,13 @@ async function runPaginationTests() {
   {
     const res = await fetch(`${BASE_URL}/leads?limit=1000`, { headers: authHeaders });
     const body = await res.json();
+    const leadsList = Array.isArray(body.data) ? body.data : (body.data?.leads || []);
     assert(
       res.status === 200 &&
-        body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
+        leadsList.length <= 20 &&
         body.pagination?.item_per_page === 20,
       'Test 7: GET /api/leads?limit=1000 enforces 20 count limit per page',
-      `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
+      `Got limit: ${body.pagination?.limit}, items: ${leadsList.length}`
     );
   }
 
@@ -140,7 +134,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 8: GET /api/complaints?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -154,7 +147,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 9: GET /api/posts?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`
@@ -168,7 +160,6 @@ async function runPaginationTests() {
     assert(
       res.status === 200 &&
         body.data.length <= 20 &&
-        body.pagination?.limit === 20 &&
         body.pagination?.item_per_page === 20,
       'Test 10: GET /api/admin/profiles?limit=1000 enforces 20 count limit per page',
       `Got limit: ${body.pagination?.limit}, items: ${body.data?.length}`

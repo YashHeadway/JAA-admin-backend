@@ -8,11 +8,11 @@ export const getLeads = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Leads fetched successfully',
-    data: {
-      leads: result.leads,
-      pagination: result.pagination,
-    },
     pagination: result.pagination,
+    data: {
+      pagination: result.pagination,
+      leads: result.leads,
+    },
   });
 });
 
