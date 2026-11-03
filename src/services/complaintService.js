@@ -58,11 +58,28 @@ export class ComplaintService {
   }
 
   /**
-   * Format a single complaint into the concise summary listing format for GET /api/complaints.
-   * Delegates to formatDetailItem to ensure 100% exact parity between list and detail APIs.
+   * Format a single complaint into the concise listing format for GET /api/complaints & GET /api/admin/complaints.
    */
   static async formatListItem(complaintDoc) {
-    return await this.formatDetailItem(complaintDoc);
+    const detail = await this.formatDetailItem(complaintDoc);
+    if (!detail) return null;
+
+    return {
+      id: detail.id,
+      complaintNumber: detail.complaintNumber,
+      complaintAgainst: detail.complaintAgainst,
+      complaintBy: {
+        memberId: detail.complaintBy?.memberId ?? null,
+        membershipId: detail.complaintBy?.membershipId || '',
+        name: detail.complaintBy?.name || '',
+        business: detail.complaintBy?.business || '',
+      },
+      targetMember: detail.targetMember,
+      againstPerson: detail.againstPerson,
+      complaintType: detail.complaintType,
+      priority: detail.priority,
+      status: detail.status,
+    };
   }
 
   /**
@@ -109,8 +126,6 @@ export class ComplaintService {
     }
 
     const complaintBy = {
-      _id: memberObjectId ? memberObjectId.toString() : null,
-      memberObjectId: memberObjectId ? memberObjectId.toString() : null,
       memberId: memberId !== null && !isNaN(Number(memberId)) ? Number(memberId) : memberId,
       membershipId,
       name,
@@ -127,7 +142,9 @@ export class ComplaintService {
     let againstPerson = null;
 
     if (isAgainstMember) {
-      let tId = doc.targetMember?.memberId || doc.targetMemberId || doc.member?.id || null;
+      let tId = doc.targetMember?.memberId !== undefined && doc.targetMember?.memberId !== null
+        ? doc.targetMember.memberId
+        : (doc.targetMemberId !== undefined && doc.targetMemberId !== null ? doc.targetMemberId : (doc.member?.id || null));
       let tObjectId = doc.targetMember?.memberObjectId || doc.targetMember?._id || doc.targetMemberObjectId || null;
       let tName = (doc.targetMember?.name || doc.member?.name || '').trim();
       let tBusiness = (doc.targetMember?.business || doc.member?.business || '').trim();
@@ -138,11 +155,11 @@ export class ComplaintService {
       let tAvatar = doc.targetMember?.avatar || doc.member?.avatar || null;
       let tMembershipId = (doc.targetMember?.membershipId || '').trim();
 
-      if (tId || tObjectId) {
-        const found = await this.findMember(tObjectId || tId);
+      if (tId || tObjectId || (!tEmail && tName)) {
+        const found = await this.findMember(tId || tObjectId || tName);
         if (found) {
-          tObjectId = tObjectId || (found._id ? found._id.toString() : null);
-          tId = tId !== null && tId !== undefined ? tId : found.id;
+          tObjectId = found._id ? found._id.toString() : null;
+          tId = found.id;
           tMembershipId = tMembershipId || found.membershipId || '';
           tName = tName || found.name || '';
           tBusiness = tBusiness || found.business || '';
@@ -151,16 +168,16 @@ export class ComplaintService {
           tCity = tCity || found.city || '';
           tAddress = tAddress || found.address || '';
           tAvatar = tAvatar || found.avatar || null;
+        } else {
+          tObjectId = null;
         }
       }
 
       if (tName || tId || tObjectId) {
         targetMember = {
-          _id: tObjectId ? tObjectId.toString() : null,
-          memberObjectId: tObjectId ? tObjectId.toString() : null,
           memberId: tId !== null && !isNaN(Number(tId)) ? Number(tId) : tId,
           membershipId: tMembershipId,
-          name: tName,
+          name: tName || (tId ? `Member ${tId}` : ''),
           business: tBusiness,
           mobile: tMobile,
           email: tEmail,
@@ -180,28 +197,6 @@ export class ComplaintService {
         company: p.company || p.business || doc.member?.business || null,
       };
     }
-
-    // Backwards-compatible member object
-    const member = isAgainstMember && targetMember ? {
-      id: targetMember.memberId,
-      _id: targetMember._id,
-      name: targetMember.name,
-      business: targetMember.business,
-      mobile: targetMember.mobile,
-      email: targetMember.email,
-      address: targetMember.address,
-      avatar: targetMember.avatar,
-    } : (!isAgainstMember && againstPerson ? {
-      id: null,
-      _id: null,
-      name: againstPerson.name || '',
-      business: againstPerson.company || null,
-      mobile: againstPerson.mobile || '',
-      email: againstPerson.email || null,
-      gstNumber: againstPerson.gstNumber || null,
-      address: againstPerson.address || null,
-      avatar: null,
-    } : null);
 
     // Incident Details
     const rawAmt = doc.complaintDetails?.amountInvolved !== undefined
@@ -246,14 +241,12 @@ export class ComplaintService {
     };
 
     return {
-      complaintId,
       id: complaintId,
       complaintNumber: doc.complaintNumber || `CMP-2026-${String(complaintId).padStart(3, '0')}`,
       complaintAgainst: isAgainstMember ? 'Member' : 'Other',
       complaintBy,
       targetMember,
       againstPerson,
-      member,
       complaintType: doc.complaintType || doc.type || 'Payment Dispute',
       priority,
       status,
@@ -322,23 +315,15 @@ export class ComplaintService {
 
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
 
-    const [items, total, totalAll, memberCount, otherCount] = await Promise.all([
+    const [items, total] = await Promise.all([
       Complaint.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Complaint.countDocuments(filter),
-      Complaint.countDocuments(),
-      Complaint.countDocuments({ complaintAgainst: /^member$/i }),
-      Complaint.countDocuments({ complaintAgainst: { $ne: 'Member' } }),
     ]);
 
     const formattedList = await Promise.all(items.map((item) => this.formatListItem(item)));
     const pagination = formatPaginationMeta(total, parsedPage, parsedLimit);
 
     return {
-      summary: {
-        totalComplaints: totalAll,
-        againstMember: memberCount,
-        againstOther: otherCount,
-      },
       data: formattedList,
       pagination,
     };
@@ -551,7 +536,7 @@ export class ComplaintService {
     return await this.formatDetailItem(newDoc);
   }
 
-  static async updateStatus(id, updateData) {
+  static async updateStatus(id, updateData, files = []) {
     const payload = typeof updateData === 'string' ? { status: updateData } : { ...updateData };
 
     const existing = await Complaint.findOne(this.buildComplaintQuery(id));
@@ -561,67 +546,445 @@ export class ComplaintService {
 
     const updateFields = {};
 
-    if (payload.status) updateFields.status = payload.status;
-    if (payload.complaintAgainst) updateFields.complaintAgainst = payload.complaintAgainst;
-    if (payload.complaintType) updateFields.complaintType = payload.complaintType;
-    if (payload.priority) {
-      updateFields.priority = payload.priority;
-      updateFields['complaintDetails.priority'] = payload.priority;
-    }
-    if (payload.hasPreviousInteraction !== undefined) {
-      updateFields.hasPreviousInteraction = Boolean(payload.hasPreviousInteraction);
-    }
-    if (payload.preferredResolution !== undefined) {
-      updateFields.preferredResolution = payload.preferredResolution;
+    // 1. Status (case-insensitive normalization)
+    if (payload.status !== undefined && payload.status !== null) {
+      const rawStatus = String(payload.status).trim();
+      const lowerStatus = rawStatus.toLowerCase();
+      let normalizedStatus = rawStatus;
+      if (lowerStatus === 'open') normalizedStatus = 'Open';
+      else if (lowerStatus === 'new') normalizedStatus = 'New';
+      else if (['in progress', 'inprogress', 'in_progress', 'in-progress'].includes(lowerStatus)) normalizedStatus = 'In Progress';
+      else if (['under review', 'underreview', 'under_review', 'under-review'].includes(lowerStatus)) normalizedStatus = 'Under Review';
+      else if (lowerStatus === 'resolved') normalizedStatus = 'Resolved';
+      else if (lowerStatus === 'closed') normalizedStatus = 'Closed';
+
+      updateFields.status = normalizedStatus;
     }
 
-    // Target member / Against person updates
-    if (payload.targetMemberId || payload.targetMemberObjectId) {
-      const found = await this.findMember(payload.targetMemberObjectId || payload.targetMemberId);
-      if (found) {
-        updateFields.targetMemberObjectId = found._id;
-        updateFields.targetMemberId = found.id;
-        updateFields.targetMember = {
-          _id: found._id,
-          memberObjectId: found._id,
-          memberId: found.id,
-          membershipId: found.membershipId || '',
-          name: found.name,
-          business: found.business || '',
-          mobile: found.mobile || '',
-          email: found.email || '',
-          city: found.city || 'Ahmedabad',
-          address: found.address || '',
-          avatar: found.avatar || null,
+    // 2. Complaint Against ('Member' | 'Other')
+    let effectiveComplaintAgainst = existing.complaintAgainst || 'Member';
+    if (payload.complaintAgainst) {
+      const lowerAgainst = String(payload.complaintAgainst).trim().toLowerCase();
+      const isOther = ['other', 'person', 'non-member'].includes(lowerAgainst);
+      effectiveComplaintAgainst = isOther ? 'Other' : 'Member';
+      updateFields.complaintAgainst = effectiveComplaintAgainst;
+    } else if (payload.againstPerson || payload.complaintPerson || payload.person) {
+      effectiveComplaintAgainst = 'Other';
+      updateFields.complaintAgainst = 'Other';
+    } else if (
+      payload.targetMember !== undefined ||
+      payload.targetMemberId !== undefined ||
+      payload.targetId !== undefined ||
+      payload.target !== undefined ||
+      payload.againstMemberId !== undefined ||
+      payload.againstMember !== undefined
+    ) {
+      effectiveComplaintAgainst = 'Member';
+      updateFields.complaintAgainst = 'Member';
+    }
+
+    // 3. Complaint Type / Title
+    const cType = payload.complaintType || payload.type || payload.title || payload.subject;
+    if (cType !== undefined && cType !== null && String(cType).trim() !== '') {
+      updateFields.complaintType = String(cType).trim();
+    }
+
+    // 4. Priority
+    let effectivePriority = payload.priority || payload.complaintDetails?.priority;
+    if (effectivePriority) {
+      const lowerPri = String(effectivePriority).trim().toLowerCase();
+      if (lowerPri === 'low') effectivePriority = 'Low';
+      else if (['med', 'medium'].includes(lowerPri)) effectivePriority = 'Medium';
+      else if (lowerPri === 'high') effectivePriority = 'High';
+      updateFields.priority = effectivePriority;
+      updateFields['complaintDetails.priority'] = effectivePriority;
+    }
+
+    // 5. History & Preferred Resolution
+    if (payload.hasPreviousInteraction !== undefined && payload.hasPreviousInteraction !== null) {
+      updateFields.hasPreviousInteraction = Boolean(
+        payload.hasPreviousInteraction === true ||
+        String(payload.hasPreviousInteraction).toLowerCase() === 'true' ||
+        payload.hasPreviousInteraction === 1 ||
+        payload.hasPreviousInteraction === '1'
+      );
+    }
+    if (payload.preferredResolution !== undefined && payload.preferredResolution !== null) {
+      updateFields.preferredResolution = String(payload.preferredResolution).trim();
+    }
+
+    // 6. Complaint Details (Incident Date, Time, Location, Proof, Amount)
+    let rawDetails = payload.complaintDetails;
+    if (typeof rawDetails === 'string') {
+      try {
+        rawDetails = JSON.parse(rawDetails);
+      } catch {
+        rawDetails = {};
+      }
+    }
+    rawDetails = rawDetails && typeof rawDetails === 'object' ? rawDetails : {};
+
+    const incidentDate = payload.incidentDate !== undefined
+      ? payload.incidentDate
+      : (rawDetails.incidentDate !== undefined ? rawDetails.incidentDate : undefined);
+    if (incidentDate !== undefined) {
+      updateFields['complaintDetails.incidentDate'] = String(incidentDate).trim();
+      updateFields.incidentDate = String(incidentDate).trim();
+    }
+
+    const incidentTime = payload.incidentTime !== undefined
+      ? payload.incidentTime
+      : (rawDetails.incidentTime !== undefined ? rawDetails.incidentTime : undefined);
+    if (incidentTime !== undefined) {
+      updateFields['complaintDetails.incidentTime'] = String(incidentTime).trim();
+      updateFields.incidentTime = String(incidentTime).trim();
+    }
+
+    const location = payload.location !== undefined
+      ? payload.location
+      : (payload.incidentLocation !== undefined ? payload.incidentLocation : (rawDetails.location !== undefined ? rawDetails.location : undefined));
+    if (location !== undefined) {
+      updateFields['complaintDetails.location'] = String(location).trim();
+      updateFields.incidentLocation = String(location).trim();
+    }
+
+    const proofAvailable = payload.proofAvailable !== undefined
+      ? payload.proofAvailable
+      : (rawDetails.proofAvailable !== undefined ? rawDetails.proofAvailable : undefined);
+    if (proofAvailable !== undefined) {
+      updateFields['complaintDetails.proofAvailable'] = Boolean(
+        proofAvailable === true || String(proofAvailable).toLowerCase() === 'true' || proofAvailable === 1 || proofAvailable === '1'
+      );
+    }
+
+    const rawAmt = payload.amountInvolved !== undefined
+      ? payload.amountInvolved
+      : (payload.financialAmount !== undefined
+          ? payload.financialAmount
+          : (payload.amount !== undefined ? payload.amount : rawDetails.amountInvolved));
+    if (rawAmt !== undefined) {
+      const numAmt = typeof rawAmt === 'number' ? rawAmt : (Number(String(rawAmt).replace(/[^0-9.-]+/g, '')) || 0);
+      updateFields['complaintDetails.amountInvolved'] = numAmt;
+      updateFields.financialAmount = numAmt;
+    }
+
+    // 7. Description Details (issueSummary, detailedDescription)
+    let rawDesc = payload.description;
+    if (typeof rawDesc === 'string') {
+      try {
+        rawDesc = JSON.parse(rawDesc);
+      } catch {
+        // keep string
+      }
+    }
+    let issueSummary = payload.issueSummary || payload.summary || payload.typeSubtitle || payload.executiveSummary;
+    let detailedDescription = payload.detailedDescription || payload.details;
+
+    if (typeof rawDesc === 'string') {
+      if (!detailedDescription) detailedDescription = rawDesc;
+      if (!issueSummary) issueSummary = rawDesc;
+    } else if (rawDesc && typeof rawDesc === 'object') {
+      if (rawDesc.issueSummary !== undefined && !issueSummary) issueSummary = rawDesc.issueSummary;
+      if (rawDesc.detailedDescription !== undefined && !detailedDescription) detailedDescription = rawDesc.detailedDescription;
+    }
+
+    if (issueSummary !== undefined) {
+      updateFields['description.issueSummary'] = String(issueSummary).trim();
+      updateFields.typeSubtitle = String(issueSummary).trim();
+    }
+    if (detailedDescription !== undefined) {
+      updateFields['description.detailedDescription'] = String(detailedDescription).trim();
+    }
+
+    // 8. Media
+    let mediaList = null;
+    if (payload.media !== undefined) {
+      let rawMedia = payload.media;
+      if (typeof rawMedia === 'string') {
+        try {
+          rawMedia = JSON.parse(rawMedia);
+        } catch {
+          rawMedia = [{ url: rawMedia, type: 'Photo' }];
+        }
+      }
+      if (Array.isArray(rawMedia)) {
+        mediaList = rawMedia.map((m) => {
+          if (typeof m === 'string') return { url: m, type: 'Photo' };
+          return {
+            url: m.url || m.path || '',
+            type: m.type || (m.url && m.url.endsWith('.pdf') ? 'Document' : 'Photo'),
+          };
+        }).filter((m) => Boolean(m.url));
+      } else if (rawMedia && typeof rawMedia === 'object') {
+        mediaList = [{
+          url: rawMedia.url || rawMedia.path || '',
+          type: rawMedia.type || 'Photo',
+        }].filter((m) => Boolean(m.url));
+      }
+    }
+
+    if (Array.isArray(files) && files.length > 0) {
+      const uploadedMedia = files.map((f) => ({
+        url: `/uploads/${f.filename}`,
+        type: f.mimetype && f.mimetype.includes('pdf') ? 'Document' : (f.mimetype && f.mimetype.includes('video') ? 'Video' : 'Photo'),
+      }));
+      mediaList = mediaList ? [...mediaList, ...uploadedMedia] : [...(existing.media || []), ...uploadedMedia];
+    }
+
+    if (mediaList !== null) {
+      updateFields.media = mediaList;
+    }
+
+    // 9. Target Member (When Against Member)
+    if (effectiveComplaintAgainst === 'Member') {
+      let targetMemberIdentifier = null;
+      let targetMemberObject = null;
+
+      if (payload.targetMember !== undefined && payload.targetMember !== null) {
+        let tm = payload.targetMember;
+        if (typeof tm === 'string') {
+          try {
+            tm = JSON.parse(tm);
+          } catch {
+            // plain string
+          }
+        }
+        if (typeof tm === 'object' && tm !== null) {
+          targetMemberObject = tm;
+          targetMemberIdentifier = tm.memberId !== undefined ? tm.memberId : (tm.id !== undefined ? tm.id : (tm.memberObjectId || tm._id || tm.name || null));
+        } else if (typeof tm === 'number' || (typeof tm === 'string' && tm.trim() !== '')) {
+          targetMemberIdentifier = tm;
+        }
+      }
+
+      if (targetMemberIdentifier === null || targetMemberIdentifier === undefined) {
+        targetMemberIdentifier =
+          payload.targetId !== undefined ? payload.targetId :
+          (payload.targetMemberId !== undefined ? payload.targetMemberId :
+          (payload.targetMemberObjectId !== undefined ? payload.targetMemberObjectId :
+          (payload.againstMemberId !== undefined ? payload.againstMemberId :
+          (payload.target !== undefined ? payload.target :
+          (payload.againstMember !== undefined ? payload.againstMember :
+          (payload.memberId !== undefined ? payload.memberId :
+          (payload.member?.memberId !== undefined ? payload.member.memberId :
+          (payload.member?.id !== undefined ? payload.member.id :
+          (payload.member?.memberObjectId || payload.member?._id || null)))))))));
+      }
+
+      if (!targetMemberObject && payload.member && typeof payload.member === 'object') {
+        targetMemberObject = payload.member;
+      }
+
+      const cur = existing.targetMember || {};
+      const hasMemberUpdates =
+        targetMemberIdentifier !== null ||
+        targetMemberObject !== null ||
+        payload.name !== undefined ||
+        payload.business !== undefined ||
+        payload.mobile !== undefined ||
+        payload.mobileNumber !== undefined ||
+        payload.phone !== undefined ||
+        payload.email !== undefined ||
+        payload.city !== undefined ||
+        payload.address !== undefined ||
+        payload.avatar !== undefined ||
+        payload.membershipId !== undefined;
+
+      if (hasMemberUpdates) {
+        let found = null;
+        if (targetMemberIdentifier !== null && targetMemberIdentifier !== undefined && String(targetMemberIdentifier).trim() !== '') {
+          found = await this.findMember(targetMemberIdentifier);
+          if (!found) {
+            throw ApiError.notFound(`Target member with identifier '${targetMemberIdentifier}' was not found`);
+          }
+        }
+        if (!found && payload.name && !targetMemberIdentifier) {
+          found = await this.findMember(payload.name);
+        }
+
+        if (found) {
+          updateFields.targetMemberObjectId = found._id;
+          updateFields.targetMemberId = found.id;
+          updateFields.targetMember = {
+            _id: found._id,
+            memberObjectId: found._id,
+            memberId: found.id,
+            membershipId: payload.membershipId || targetMemberObject?.membershipId || found.membershipId || '',
+            name: payload.name !== undefined ? payload.name : (targetMemberObject?.name !== undefined ? targetMemberObject.name : found.name),
+            business: payload.business !== undefined ? payload.business : (targetMemberObject?.business !== undefined ? targetMemberObject.business : (found.business || '')),
+            mobile: (payload.mobile !== undefined ? payload.mobile : (payload.mobileNumber !== undefined ? payload.mobileNumber : (payload.phone !== undefined ? payload.phone : (targetMemberObject?.mobile !== undefined ? targetMemberObject.mobile : (found.mobile || ''))))),
+            email: payload.email !== undefined ? payload.email : (targetMemberObject?.email !== undefined ? targetMemberObject.email : (found.email || '')),
+            city: payload.city !== undefined ? payload.city : (targetMemberObject?.city !== undefined ? targetMemberObject.city : (found.city || 'Ahmedabad')),
+            address: payload.address !== undefined ? payload.address : (targetMemberObject?.address !== undefined ? targetMemberObject.address : (found.address || '')),
+            avatar: payload.avatar !== undefined ? payload.avatar : (targetMemberObject?.avatar !== undefined ? targetMemberObject.avatar : (found.avatar || null)),
+          };
+        } else {
+          // Direct field update on existing target member (e.g. name only)
+          updateFields.targetMember = {
+            _id: cur._id || null,
+            memberObjectId: cur.memberObjectId || null,
+            memberId: cur.memberId || null,
+            membershipId: payload.membershipId || cur.membershipId || '',
+            name: payload.name !== undefined ? payload.name : (cur.name || ''),
+            business: payload.business !== undefined ? payload.business : (cur.business || ''),
+            mobile: (payload.mobile !== undefined ? payload.mobile : (payload.mobileNumber !== undefined ? payload.mobileNumber : (payload.phone !== undefined ? payload.phone : (cur.mobile || '')))),
+            email: payload.email !== undefined ? payload.email : (cur.email || ''),
+            city: payload.city !== undefined ? payload.city : (cur.city || 'Ahmedabad'),
+            address: payload.address !== undefined ? payload.address : (cur.address || ''),
+            avatar: payload.avatar !== undefined ? payload.avatar : (cur.avatar || null),
+          };
+        }
+      }
+    }
+
+    // 10. Against Person (When Against Other)
+    if (effectiveComplaintAgainst === 'Other') {
+      let rawPerson = payload.againstPerson || payload.complaintPerson || payload.person;
+      if (typeof rawPerson === 'string') {
+        try {
+          rawPerson = JSON.parse(rawPerson);
+        } catch {
+          rawPerson = { name: rawPerson };
+        }
+      }
+      const cur = existing.againstPerson || {};
+      const hasPersonUpdates =
+        rawPerson !== undefined ||
+        payload.name !== undefined ||
+        payload.mobile !== undefined ||
+        payload.mobileNumber !== undefined ||
+        payload.phone !== undefined ||
+        payload.email !== undefined ||
+        payload.gstNumber !== undefined ||
+        payload.gst !== undefined ||
+        payload.address !== undefined ||
+        payload.company !== undefined ||
+        payload.business !== undefined ||
+        payload.firmName !== undefined;
+
+      if (hasPersonUpdates) {
+        updateFields.againstPerson = {
+          name: rawPerson?.name !== undefined ? rawPerson.name : (payload.name !== undefined ? payload.name : (cur.name || '')),
+          mobile: rawPerson?.mobile !== undefined ? rawPerson.mobile : (payload.mobile !== undefined ? payload.mobile : (payload.mobileNumber || payload.phone || cur.mobile || '')),
+          email: rawPerson?.email !== undefined ? rawPerson.email : (payload.email !== undefined ? payload.email : (cur.email || null)),
+          gstNumber: rawPerson?.gstNumber !== undefined ? rawPerson.gstNumber : (payload.gstNumber !== undefined ? payload.gstNumber : (payload.gst || cur.gstNumber || null)),
+          address: rawPerson?.address !== undefined ? rawPerson.address : (payload.address !== undefined ? payload.address : (cur.address || null)),
+          company: rawPerson?.company !== undefined ? rawPerson.company : (payload.company !== undefined ? payload.company : (payload.business || payload.firmName || cur.company || null)),
         };
       }
     }
 
-    if (payload.againstPerson) {
-      updateFields.againstPerson = {
-        name: payload.againstPerson.name || existing.againstPerson?.name || '',
-        mobile: payload.againstPerson.mobile || existing.againstPerson?.mobile || '',
-        email: payload.againstPerson.email !== undefined ? payload.againstPerson.email : existing.againstPerson?.email,
-        gstNumber: payload.againstPerson.gstNumber !== undefined ? payload.againstPerson.gstNumber : existing.againstPerson?.gstNumber,
-        address: payload.againstPerson.address !== undefined ? payload.againstPerson.address : existing.againstPerson?.address,
-        company: payload.againstPerson.company !== undefined ? payload.againstPerson.company : existing.againstPerson?.company,
-      };
+    // 11. Complainant (complaintBy)
+    let complainantId = null;
+    let complainantObject = null;
+
+    if (payload.complaintBy !== undefined && payload.complaintBy !== null) {
+      let cb = payload.complaintBy;
+      if (typeof cb === 'string') {
+        try {
+          cb = JSON.parse(cb);
+        } catch {
+          // plain string
+        }
+      }
+      if (typeof cb === 'object' && cb !== null) {
+        complainantObject = cb;
+        complainantId = cb.memberId !== undefined ? cb.memberId : (cb.id !== undefined ? cb.id : (cb.memberObjectId || cb._id || cb.name || null));
+      } else if (typeof cb === 'number' || (typeof cb === 'string' && cb.trim() !== '')) {
+        complainantId = cb;
+      }
     }
 
-    // Resolution Notes & Admin Action
-    const resNotes = payload.resolutionNotes || payload.adminRemarks || payload.adminAction?.resolutionNotes;
+    if (complainantId === null || complainantId === undefined) {
+      complainantId =
+        payload.complainantId !== undefined ? payload.complainantId :
+        (payload.complainantObjectId !== undefined ? payload.complainantObjectId :
+        (payload.complainant?.memberId !== undefined ? payload.complainant.memberId :
+        (payload.complainant?.id !== undefined ? payload.complainant.id : null)));
+    }
+
+    if (!complainantObject && payload.complainant && typeof payload.complainant === 'object') {
+      complainantObject = payload.complainant;
+    }
+
+    if (complainantId !== null || complainantObject !== null) {
+      let found = null;
+      if (complainantId !== null && complainantId !== undefined && String(complainantId).trim() !== '') {
+        found = await this.findMember(complainantId);
+        if (!found) {
+          throw ApiError.notFound(`Complainant member with identifier '${complainantId}' was not found`);
+        }
+      }
+      const cur = existing.complaintBy || {};
+      if (found) {
+        updateFields.complaintBy = {
+          _id: found._id,
+          memberObjectId: found._id,
+          memberId: found.id,
+          membershipId: complainantObject?.membershipId || found.membershipId || '',
+          name: complainantObject?.name || found.name,
+          business: complainantObject?.business || found.business || '',
+          mobile: complainantObject?.mobile || found.mobile || '',
+          email: complainantObject?.email || found.email || '',
+          city: complainantObject?.city || found.city || 'Surat',
+          address: complainantObject?.address || found.address || '',
+          avatar: complainantObject?.avatar || found.avatar || null,
+        };
+      } else {
+        updateFields.complaintBy = {
+          _id: cur._id || null,
+          memberObjectId: cur.memberObjectId || null,
+          memberId: cur.memberId || null,
+          membershipId: complainantObject?.membershipId || cur.membershipId || '',
+          name: complainantObject?.name !== undefined ? complainantObject.name : (cur.name || ''),
+          business: complainantObject?.business !== undefined ? complainantObject.business : (cur.business || ''),
+          mobile: complainantObject?.mobile !== undefined ? complainantObject.mobile : (cur.mobile || ''),
+          email: complainantObject?.email !== undefined ? complainantObject.email : (cur.email || ''),
+          city: complainantObject?.city !== undefined ? complainantObject.city : (cur.city || 'Surat'),
+          address: complainantObject?.address !== undefined ? complainantObject.address : (cur.address || ''),
+          avatar: complainantObject?.avatar !== undefined ? complainantObject.avatar : (cur.avatar || null),
+        };
+      }
+    }
+
+    // 12. Resolution Notes & Admin Action
+    let rawAdminAction = payload.adminAction;
+    if (typeof rawAdminAction === 'string') {
+      try {
+        rawAdminAction = JSON.parse(rawAdminAction);
+      } catch {
+        rawAdminAction = {};
+      }
+    }
+    const resNotes = payload.resolutionNotes !== undefined
+      ? payload.resolutionNotes
+      : (payload.adminRemarks !== undefined
+          ? payload.adminRemarks
+          : (payload.remarks !== undefined
+              ? payload.remarks
+              : (payload.notes !== undefined ? payload.notes : rawAdminAction?.resolutionNotes)));
     if (resNotes !== undefined) {
       updateFields.resolutionNotes = resNotes;
       updateFields['adminAction.resolutionNotes'] = resNotes;
       updateFields['adminAction.updatedAt'] = new Date();
     }
-    const upBy = payload.updatedBy !== undefined ? payload.updatedBy : payload.adminAction?.updatedBy;
+    const upBy = payload.updatedBy !== undefined
+      ? payload.updatedBy
+      : (rawAdminAction?.updatedBy !== undefined ? rawAdminAction.updatedBy : undefined);
     if (upBy !== undefined) {
       updateFields.updatedBy = upBy;
       updateFields['adminAction.updatedBy'] = upBy;
     }
 
-    const updated = await Complaint.findOneAndUpdate(this.buildComplaintQuery(id), { $set: updateFields }, { returnDocument: 'after' });
+    if (Object.keys(updateFields).length === 0) {
+      throw ApiError.badRequest('No valid fields provided for update');
+    }
+
+    const updated = await Complaint.findOneAndUpdate(
+      this.buildComplaintQuery(id),
+      { $set: updateFields },
+      { returnDocument: 'after' }
+    );
     return await this.formatDetailItem(updated);
   }
 

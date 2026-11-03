@@ -1071,23 +1071,67 @@ Response (200 OK):
 
 
 ====================================================================================================
-6. GROUPS APIS (/api/groups)
+6. GROUPS & MESSAGES MODULE APIS (/api/messages/groups, /api/groups)
 ====================================================================================================
+Note: The Messages module is divided into two distinct parts:
+  Part 1: BROADCASTS (/api/messages/broadcasts)
+  Part 2: GROUP MESSAGES (/api/messages/groups)
+Both /api/messages/... and /api/... endpoints are fully supported.
 
-[6.1] Get Groups List
+[6.0] Get Members for Group Selection (Select From Members UI)
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/groups
+Endpoint:    /api/messages/members  (or /api/messages/groups/members)
 Query Params:
-  - search:  Search string (matches name, about, createdBy, groupType)
-  - page:    Page number (default: 1)
-  - limit:   Items per page (default: 20)
+  - search:    Search string (matches name, business, mobile, email, membershipId, city)
+  - page:      Page number (default: 1)
+  - limit:     Items per page (default: 100)
 
 Response (200 OK):
 {
   "success": true,
+  "message": "Members fetched successfully for selection",
   "pagination": {
-    "total_items": 5,
+    "total_items": 12,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 100,
+    "has_more": false
+  },
+  "data": [
+    {
+      "id": 41,
+      "memberId": 41,
+      "membershipId": "JBAD191",
+      "name": "Yashhh",
+      "business": "Soni Diamond House",
+      "mobile": "9737126164",
+      "email": "yashsoni@gmail.com",
+      "avatar": null,
+      "city": "Ahmedabad",
+      "status": "approved"
+    }
+  ]
+}
+
+
+[6.1] Get Groups List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/messages/groups  (or /api/groups, /api/admin/groups)
+Query Params:
+  - search:    Search string (matches name, groupName, about, description, createdBy, groupType)
+  - groupType: Filter by group type (e.g. 'All Members', 'Zone Specific')
+  - status:    Filter by active status (true | false | 'all')
+  - page:      Page number (default: 1)
+  - limit:     Items per page (default: 20)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Groups fetched successfully",
+  "pagination": {
+    "total_items": 4,
     "total_page": 1,
     "current_page": 1,
     "item_per_page": 20,
@@ -1095,124 +1139,298 @@ Response (200 OK):
   },
   "data": [
     {
-      "id": 1,
-      "name": "Manek Chowk Bullion Traders",
-      "memberCount": 128,
-      "about": "Official communication group for Manek Chowk traders.",
-      "groupType": "Zone Specific",
-      "createdOn": "2026-10-21",
-      "createdBy": "Admin User",
+      "id": 2,
+      "name": "Ahmedabad Members",
+      "groupName": "Ahmedabad Members",
+      "about": "This group includes all members from Ahmedabad city.",
+      "description": "This group includes all members from Ahmedabad city.",
+      "groupType": "All Members",
+      "createdOn": "12 December 2025",
       "status": true,
-      "recentBroadcasts": [],
-      "createdAt": "21-10-2026 05:22 pm",
-      "updatedAt": "21-10-2026 05:22 pm"
+      "members": [
+        {
+          "id": 1,
+          "name": "Mike Ross",
+          "mobile": "+91 9988774455",
+          "email": "mike.ross@gmail.com",
+          "avatar": "/uploads/members/mike.jpg"
+        }
+      ],
+      "recentBroadcasts": [
+        {
+          "id": 1,
+          "title": "Jewellery Exhibition 2026",
+          "broadcastTitle": "Jewellery Exhibition 2026",
+          "message": "Dear Members, We are excited to announce the upcoming annual jewellery exhibition.",
+          "sentOn": "15 May 2026, 10:30AM",
+          "sendTo": "All Members",
+          "status": "Delivered",
+          "attachment": null
+        }
+      ],
+      "createdBy": "Admin User",
+      "createdAt": "03-11-2026 02:44 pm",
+      "updatedAt": "03-11-2026 02:44 pm"
     }
   ]
 }
 
 
-[6.2] Get Group by ID
+[6.2] Get Group by ID (Group Details Screen)
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/groups/:id  (e.g., /api/groups/1)
+Endpoint:    /api/messages/groups/:id  (or /api/groups/:id, e.g. /api/messages/groups/2)
 
 Response (200 OK):
 {
-  "id": 1,
-  "name": "Manek Chowk Bullion Traders",
-  "memberCount": 128,
+  "success": true,
   "status": true,
-  "createdAt": "21-10-2026 05:22 pm",
-  "updatedAt": "21-10-2026 05:22 pm"
+  "message": "Group details fetched successfully",
+  "data": {
+    "id": 2,
+    "name": "Ahmedabad Members",
+    "groupName": "Ahmedabad Members",
+    "about": "This group includes all members from Ahmedabad city.",
+    "description": "This group includes all members from Ahmedabad city.",
+    "groupType": "All Members",
+    "createdOn": "12 December 2025",
+    "status": true,
+    "members": [
+      {
+        "id": 1,
+        "name": "Mike Ross",
+        "mobile": "+91 9988774455",
+        "email": "mike.ross@gmail.com",
+        "avatar": "/uploads/members/mike.jpg",
+        "business": "Pearson Specter Jewellers",
+        "membershipId": "JBAD101"
+      }
+    ],
+    "recentBroadcasts": [
+      {
+        "id": 1,
+        "title": "Jewellery Exhibition 2026",
+        "broadcastTitle": "Jewellery Exhibition 2026",
+        "message": "Dear Members, We are excited to announce the upcoming annual jewellery exhibition.",
+        "sentOn": "15 May 2026, 10:30AM",
+        "sendTo": "All Members",
+        "status": "Delivered",
+        "attachment": null
+      }
+    ],
+    "createdBy": "Admin User",
+    "createdAt": "03-11-2026 02:44 pm",
+    "updatedAt": "03-11-2026 02:44 pm"
+  }
 }
 
 
 [6.3] Create New Group
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/groups
-Headers:     Content-Type: application/json
+Endpoint:    /api/messages/groups  (or /api/groups, /api/admin/groups)
+Headers:     Content-Type: application/json or multipart/form-data
 
-Request Body:
+Request Body (Option A: "Select From Members" via JSON):
 {
-  "name": "Diamond Importers Committee",  // (Required) String
-  "about": "Collaboration channel.",     // (Optional) String
-  "groupType": "Category Group",         // (Optional) String (default: 'All Members')
-  "status": true                         // (Optional) Boolean (default: true)
+  "name": "Ahmedabad Members",                          // (Required) String - "Group Name *"
+  "description": "This group includes all members...", // (Optional) String - "Description (Optional)"
+  "groupType": "All Members",                          // (Optional) String (default: 'All Members')
+  "addMembers": [1, 2, 41],                            // (Required) Array of member numeric IDs / ObjectIds (alias: memberIds)
+  "status": true                                       // (Optional) Boolean (default: true)
 }
+
+Request Body (Option B: "Upload Excel" via multipart/form-data):
+- name: "Ahmedabad Members"                             // (Required) Text - "Group Name *"
+- description: "This group includes all members..."     // (Optional) Text - "Description (Optional)"
+- file: <Excel/CSV file> (.xlsx, .xls, .csv)            // (Required) File - auto-parses member IDs, mobiles, names into group members
 
 Response (201 Created):
 {
-  "id": 2,
-  "name": "Diamond Importers Committee",
-  "memberCount": 0,
+  "success": true,
   "status": true,
-  "createdAt": "23-10-2026 11:25 am",
-  "updatedAt": "23-10-2026 11:25 am"
+  "message": "Group created successfully",
+  "data": {
+    "id": 5,
+    "name": "Ahmedabad Members",
+    "groupName": "Ahmedabad Members",
+    "about": "This group includes all members...",
+    "description": "This group includes all members...",
+    "groupType": "All Members",
+    "createdOn": "12 December 2025",
+    "status": true,
+    "members": [
+      {
+        "id": 1,
+        "name": "Mike Ross",
+        "mobile": "+91 9988774455",
+        "email": "mike.ross@gmail.com"
+      }
+    ],
+    "recentBroadcasts": [],
+    "createdBy": "Admin User",
+    "createdAt": "03-11-2026 02:50 pm",
+    "updatedAt": "03-11-2026 02:50 pm"
+  }
 }
 
 
 [6.4] Update Group
 --------------------------------------------------
-Method:      PUT
-Endpoint:    /api/groups/:id  (e.g., /api/groups/1)
+Method:      PUT / PATCH
+Endpoint:    /api/messages/groups/:id  (or /api/groups/:id)
 
 Request Body:
 {
-  "name": "Updated Group Name",
-  "about": "Updated description"
+  "name": "Updated Ahmedabad Members",
+  "description": "Updated description for group"
 }
 
 Response (200 OK):
 {
-  "id": 1,
-  "name": "Updated Group Name",
-  "createdAt": "21-10-2026 05:22 pm",
-  "updatedAt": "23-10-2026 11:26 am"
+  "success": true,
+  "status": true,
+  "message": "Group updated successfully",
+  "data": {
+    "id": 2,
+    "name": "Updated Ahmedabad Members",
+    "groupName": "Updated Ahmedabad Members",
+    "description": "Updated description for group"
+  }
 }
 
 
 [6.5] Toggle Group Status
 --------------------------------------------------
-Method:      PATCH
-Endpoint:    /api/groups/:id/status  (e.g., /api/groups/1/status)
-
-Response (200 OK):
-{
-  "id": 1,
-  "status": false,
-  "createdAt": "21-10-2026 05:22 pm",
-  "updatedAt": "23-10-2026 11:27 am"
-}
-
-
-[6.6] Delete Group
---------------------------------------------------
-Method:      DELETE
-Endpoint:    /api/groups/:id  (e.g., /api/groups/1)
-
-Response (200 OK):
-{
-  "id": 1
-}
-
-
-====================================================================================================
-7. BROADCASTS APIS (/api/broadcasts)
-====================================================================================================
-
-[7.1] Get Broadcasts List
---------------------------------------------------
-Method:      GET
-Endpoint:    /api/broadcasts
-Query Params:
-  - search:  Search string (matches title, message, sentTo)
-  - page:    Page number (default: 1)
-  - limit:   Items per page (default: 20)
+Method:      PATCH / PUT
+Endpoint:    /api/messages/groups/:id/status  (or /api/groups/:id/status)
 
 Response (200 OK):
 {
   "success": true,
+  "status": true,
+  "message": "Group status updated successfully",
+  "data": {
+    "id": 2,
+    "status": false
+  }
+}
+
+
+[6.6] Group Action: Add Members to Group
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/messages/groups/:id/members  (or /api/groups/:id/members)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body:
+{
+  "memberIds": [14, 16]                                 // Array of member IDs to add
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Members added to group successfully",
+  "data": {
+    "id": 2,
+    "name": "Ahmedabad Members",
+    "members": [ ... ]
+  }
+}
+
+
+[6.7] Group Action: Send Broadcast to Group
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/messages/groups/:id/broadcast  (or /api/groups/:id/broadcast)
+Headers:     Content-Type: application/json or multipart/form-data
+
+Request Body:
+{
+  "title": "Emergency Notice for Group",               // (Required) String
+  "message": "Please attend the urgent meeting."       // (Required) String
+  // Optional file: "attachment" (image or document)
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "status": true,
+  "message": "Broadcast sent to group successfully",
+  "data": {
+    "id": 11,
+    "title": "Emergency Notice for Group",
+    "broadcastTitle": "Emergency Notice for Group",
+    "message": "Please attend the urgent meeting.",
+    "attachment": null,
+    "sentOn": "3 Nov 2026, 5:22PM",
+    "sendTo": "Ahmedabad Members",
+    "status": "Delivered",
+    "group_id": {
+      "id": 2,
+      "name": "Ahmedabad Members"
+    },
+    "createdBy": "Admin User",
+    "createdAt": "03-11-2026 05:22 pm",
+    "updatedAt": "03-11-2026 05:22 pm"
+  },
+  "recentBroadcasts": [
+    {
+      "id": 11,
+      "title": "Emergency Notice for Group",
+      "broadcastTitle": "Emergency Notice for Group",
+      "message": "Please attend the urgent meeting.",
+      "sentOn": "3 Nov 2026, 5:22PM",
+      "sendTo": "Ahmedabad Members",
+      "status": "Delivered",
+      "attachment": null,
+      "group_id": {
+        "id": 2,
+        "name": "Ahmedabad Members"
+      }
+    }
+  ]
+}
+
+
+[6.8] Delete Group
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/messages/groups/:id  (or /api/groups/:id)
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Group deleted successfully",
+  "data": {
+    "id": 1
+  }
+}
+
+
+====================================================================================================
+7. BROADCASTS & MESSAGES MODULE APIS (/api/messages, /api/broadcasts)
+====================================================================================================
+Note: Broadcasts can be created and listed via `/api/messages/broadcasts` or `/api/broadcasts`.
+
+[7.1] Get Broadcasts List
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/messages/broadcasts  (or /api/broadcasts, /api/admin/broadcasts)
+Query Params:
+  - search:    Search string (matches title, broadcastTitle, message, sentTo)
+  - groupId:   Filter by specific group ID
+  - sentTo:    Filter by recipient audience (e.g. 'All Members', 'Committee Members')
+  - page:      Page number (default: 1)
+  - limit:     Items per page (default: 20)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Broadcasts fetched successfully",
   "pagination": {
     "total_items": 15,
     "total_page": 1,
@@ -1223,44 +1441,91 @@ Response (200 OK):
   "data": [
     {
       "id": 1,
-      "title": "Diwali Market Timings Notice",
-      "message": "All shops are permitted extended timings during Pushya Nakshatra and Dhanteras.",
-      "sentOn": "21 Oct 2026, 05:25 pm",
-      "sentTo": "All Members",
+      "title": "Jewellery Exhibition 2026",
+      "broadcastTitle": "Jewellery Exhibition 2026",
+      "message": "Dear Members, We are excited to announce the upcoming annual jewellery exhibition.",
+      "attachment": "/uploads/exhibition-banner.jpg",
+      "sentOn": "15 May 2026, 10:30AM",
+      "sendTo": "All Members",
       "status": "Delivered",
-      "groupId": null,
-      "createdAt": "21-10-2026 05:25 pm",
-      "updatedAt": "21-10-2026 05:25 pm"
+      "createdAt": "03-11-2026 02:44 pm",
+      "updatedAt": "03-11-2026 02:44 pm"
     }
   ]
 }
 
 
-[7.2] Send / Create Broadcast
+[7.2] Send / Create Broadcast (Create Broadcast Screen)
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/broadcasts
-Headers:     Content-Type: application/json
+Endpoint:    /api/messages/broadcasts  (or /api/broadcasts, /api/messages/send)
+Headers:     Content-Type: application/json or multipart/form-data
 
-Request Body:
+Request Body (JSON or multipart/form-data):
 {
-  "title": "Emergency Security Advisory",    // (Required) String
-  "message": "Urgent verification notice.",  // (Required) String
-  "sentTo": "Retailers Zone 1",             // (Optional) String (default: 'All Members')
-  "groupId": 1                              // (Optional) Number or String
+  "title": "Jewellery Exhibition 2026",                 // (Required) String - "Broadcast Title *" (alias: broadcastTitle)
+  "message": "Dear Members, We are excited to...",     // (Required) String - "Message *"
+  "sendTo": "All Members",                              // (Required) 'All Members' | 'Committee Members' (alias: sentTo)
+  "group_id": 2                                         // (Optional) Group ID if posted from/for a particular group
+  // Optional file upload: key: "attachment" (image or document PDF/DOC)
 }
 
 Response (201 Created):
 {
-  "id": 2,
-  "title": "Emergency Security Advisory",
-  "message": "Urgent verification notice.",
-  "sentOn": "23 Oct 2026, 11:28 am",
-  "sentTo": "Retailers Zone 1",
-  "status": "Delivered",
-  "groupId": 1,
-  "createdAt": "23-10-2026 11:28 am",
-  "updatedAt": "23-10-2026 11:28 am"
+  "success": true,
+  "status": true,
+  "message": "Broadcast created successfully",
+  "data": {
+    "id": 3,
+    "title": "Jewellery Exhibition 2026",
+    "broadcastTitle": "Jewellery Exhibition 2026",
+    "message": "Dear Members, We are excited to...",
+    "attachment": "/uploads/exhibition-banner.jpg",
+    "sentOn": "15 May 2026, 10:30AM",
+    "sendTo": "All Members",
+    "status": "Delivered",
+    "group_id": null,                                   // (null for general broadcast; or object { id, name } if posted from a group)
+    "createdBy": "Admin User",
+    "createdAt": "03-11-2026 02:54 pm",
+    "updatedAt": "03-11-2026 02:54 pm"
+  }
+}
+
+
+[7.3] Delete Broadcast
+--------------------------------------------------
+Method:      DELETE
+Endpoint:    /api/messages/broadcasts/:id  (or /api/broadcasts/:id)
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Broadcast deleted successfully",
+  "data": {
+    "id": 1
+  }
+}
+
+
+====================================================================================================
+7B. MESSAGES DASHBOARD OVERVIEW (/api/messages)
+====================================================================================================
+Method:      GET
+Endpoint:    /api/messages  (or /api/admin/messages)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Messages module dashboard fetched successfully",
+  "data": {
+    "summary": {
+      "totalGroups": 4,
+      "totalBroadcasts": 3
+    },
+    "recentGroups": [ ... ],
+    "recentBroadcasts": [ ... ]
+  }
 }
 
 
@@ -1290,26 +1555,17 @@ Response (200 OK):
     "item_per_page": 20,
     "has_more": false
   },
-  "data": {
-    "pagination": {
-      "total_items": 1,
-      "total_page": 1,
-      "current_page": 1,
-      "item_per_page": 20,
-      "has_more": false
-    },
-    "leads": [
-      {
-        "id": 1,
-        "title": "Gold Worker Required",
-        "description": "Need an experienced gold worker for jewellery manufacturing.",
-        "image": "https://yourdomain.com/uploads/gold-worker.jpg",
-        "status": "ACTIVE",
-        "createdAt": "2026-10-31T10:00:00.000Z",
-        "updatedAt": "2026-10-31T10:00:00.000Z"
-      }
-    ]
-  }
+  "data": [
+    {
+      "id": 1,
+      "title": "Gold Worker Required",
+      "description": "Need an experienced gold worker for jewellery manufacturing.",
+      "image": "https://yourdomain.com/uploads/gold-worker.jpg",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-31T10:00:00.000Z",
+      "updatedAt": "2026-10-31T10:00:00.000Z"
+    }
+  ]
 }
 
 
@@ -1532,33 +1788,18 @@ Response (200 OK):
     "item_per_page": 20,
     "has_more": true
   },
-  "summary": {
-    "totalComplaints": 25,
-    "againstMember": 14,
-    "againstOther": 11
-  },
   "data": [
     {
-      "complaintId": 23,
-      "id": 23,
-      "complaintNumber": "CMP-2026-023",
+      "id": 27,
+      "complaintNumber": "CMP-2026-027",
       "complaintAgainst": "Member",
       "complaintBy": {
-        "_id": "6ad8a5a94ff39d392932da31",
-        "memberObjectId": "6ad8a5a94ff39d392932da31",
-        "memberId": 2,
-        "membershipId": "JBAD152",
-        "name": "yash soni",
-        "business": "Mehta Jewels & Bullion",
-        "mobile": "9737126164",
-        "email": "yashsoni3012@gmail.com",
-        "city": "Ahmedabad",
-        "address": "C 402 Hirabhai tower, Maninagar, Ahmedabad",
-        "avatar": "/uploads/screenshot-2026-10-21-115244-1792587156090.png"
+        "memberId": 1,
+        "membershipId": "JBAD151",
+        "name": "Rajesh Mehta",
+        "business": "Postman Form Data Jewellers"
       },
       "targetMember": {
-        "_id": "6ad8a51e4ff39d392932da30",
-        "memberObjectId": "6ad8a51e4ff39d392932da30",
         "memberId": 1,
         "membershipId": "JBAD151",
         "name": "Rajesh Mehta",
@@ -1570,48 +1811,32 @@ Response (200 OK):
         "avatar": null
       },
       "againstPerson": null,
-      "member": {
-        "id": 1,
-        "_id": "6ad8a51e4ff39d392932da30",
+      "complaintType": "Quality Deficiency & Hallmarking",
+      "priority": "High",
+      "status": "In Progress"
+    },
+    {
+      "id": 25,
+      "complaintNumber": "CMP-2026-025",
+      "complaintAgainst": "Other",
+      "complaintBy": {
+        "memberId": 1,
+        "membershipId": "JBAD151",
         "name": "Rajesh Mehta",
-        "business": "Postman Form Data Jewellers",
-        "mobile": "9876501234",
-        "email": "rajesh.mehta@mehtajewels.com",
-        "address": "104, Golden Plaza, C.G. Road, Ahmedabad, Gujarat - 380009",
-        "avatar": null
+        "business": "Postman Form Data Jewellers"
       },
-      "complaintType": "Delivery Delay & Stock Shortage",
-      "priority": "Low",
-      "status": "Under Review",
-      "hasPreviousInteraction": true,
-      "preferredResolution": "Compensation for revenue loss during festival rush.",
-      "complaintDetails": {
-        "incidentDate": "2026-10-24",
-        "incidentTime": "17:45",
-        "location": "Navrangpura, Ahmedabad",
-        "priority": "Low",
-        "proofAvailable": true,
-        "amountInvolved": 185000
+      "targetMember": null,
+      "againstPerson": {
+        "name": "Vikram Verma",
+        "mobile": "9712098765",
+        "email": null,
+        "gstNumber": null,
+        "address": "Ring Road, Surat, Gujarat",
+        "company": "Verma Gems Cutting & Polishing"
       },
-      "description": {
-        "issueSummary": "Consignment delivery delayed by over 3 weeks",
-        "detailedDescription": "Diwali festival stock delivery was committed for 1st October but goods were received on 24th October causing revenue loss."
-      },
-      "media": [
-        {
-          "url": "/uploads/purchase-order.jpg",
-          "type": "Photo"
-        }
-      ],
-      "updatedBy": null,
-      "adminAction": {
-        "resolutionNotes": "",
-        "updatedBy": null,
-        "updatedAt": null
-      },
-      "resolutionNotes": "",
-      "createdAt": "30-10-2026 11:42 am",
-      "updatedAt": "30-10-2026 11:42 am"
+      "complaintType": "Payment Dispute",
+      "priority": "High",
+      "status": "In Progress"
     }
   ]
 }
@@ -1627,54 +1852,68 @@ Response (200 OK):
   "success": true,
   "message": "Complaint details fetched successfully",
   "data": {
-    "complaintId": 1,
+    "id": 27,
+    "complaintNumber": "CMP-2026-027",
     "complaintAgainst": "Member",
     "complaintBy": {
-      "memberId": 12,
-      "name": "Ramesh Mehta",
-      "business": "Mehta Jewellers",
-      "mobile": "9737126164",
-      "email": "ramesh@gmail.com",
+      "memberId": 1,
+      "membershipId": "JBAD151",
+      "name": "Rajesh Mehta",
+      "business": "Postman Form Data Jewellers",
+      "mobile": "9876501234",
+      "email": "rajesh.mehta@mehtajewels.com",
+      "city": "Surat",
+      "address": "104, Golden Plaza, C.G. Road, Ahmedabad, Gujarat - 380009",
       "avatar": "/uploads/members/ramesh.jpg"
     },
-    "complaintType": "Payment Dispute",
+    "targetMember": {
+      "memberId": 41,
+      "membershipId": "JBAD191",
+      "name": "Yash Soni",
+      "business": "Soni Diamond House",
+      "mobile": "9737126164",
+      "email": "yashsoni@gmail.com",
+      "city": "Ahmedabad",
+      "address": "Maninagar, Ahmedabad",
+      "avatar": null
+    },
+    "againstPerson": null,
+    "complaintType": "Quality Deficiency & Hallmarking",
+    "priority": "High",
+    "status": "In Progress",
     "hasPreviousInteraction": false,
     "preferredResolution": "Requesting immediate payment of pending amount.",
     "complaintDetails": {
-      "incidentDate": "2026-09-03",
-      "incidentTime": "14:30",
-      "location": "Ahmedabad",
+      "incidentDate": "2026-11-02",
+      "incidentTime": "15:30",
+      "location": "C.G. Road, Navrangpura",
       "priority": "High",
       "proofAvailable": true,
-      "amountInvolved": 450000
+      "amountInvolved": 550000
     },
     "description": {
-      "issueSummary": "Payment not received for gold jewellery order",
-      "detailedDescription": "Payment has not been received despite multiple reminders."
+      "issueSummary": "Diwali gold delivery dispute",
+      "detailedDescription": "Full consignment delayed by 2 weeks during peak festive rush."
     },
     "media": [
       {
-        "url": "/uploads/payment-proof.jpg",
+        "url": "/uploads/gold-logo-1793683785589.jpg",
         "type": "Photo"
       },
       {
-        "url": "/uploads/complaint-video.mp4",
-        "type": "Video"
-      },
-      {
-        "url": "/uploads/invoice.pdf",
-        "type": "Document"
+        "url": "/uploads/gold-logo-1793683785589.jpg",
+        "type": "Photo"
       }
     ],
-    "status": "In Progress",
-    "updatedBy": "Harvey Specter",
+    "updatedBy": "Admin Yash",
     "adminAction": {
-      "resolutionNotes": "Mediation scheduled.",
-      "updatedBy": "Harvey Specter",
-      "updatedAt": "23-10-2026 05:55 pm"
+      "resolutionNotes": "Hearing conducted and settlement agreed between parties.",
+      "updatedBy": "Admin Yash",
+      "updatedAt": "03-11-2026 10:59 am"
     },
-    "createdAt": "03-09-2026 08:00 pm",
-    "updatedAt": "23-10-2026 05:55 pm"
+    "resolutionNotes": "Hearing conducted and settlement agreed between parties.",
+    "createdAt": "03-11-2026 10:45 am",
+    "updatedAt": "03-11-2026 11:43 am"
   }
 }
 
@@ -1721,13 +1960,10 @@ Response (201 Created):
   "success": true,
   "message": "Complaint registered successfully",
   "data": {
-    "complaintId": 1,
     "id": 1,
     "complaintNumber": "CMP-2026-001",
     "complaintAgainst": "Member",
     "complaintBy": {
-      "_id": "6ad8a51e4ff39d392932da30",
-      "memberObjectId": "6ad8a51e4ff39d392932da30",
       "memberId": 1,
       "membershipId": "JBAD151",
       "name": "Rajesh Mehta",
@@ -1739,8 +1975,6 @@ Response (201 Created):
       "avatar": "/uploads/members/ramesh.jpg"
     },
     "targetMember": {
-      "_id": "6ad8a5a94ff39d392932da31",
-      "memberObjectId": "6ad8a5a94ff39d392932da31",
       "memberId": 2,
       "membershipId": "JBAD152",
       "name": "yash soni",
@@ -1801,13 +2035,10 @@ Response (201 Created):
   "success": true,
   "message": "Complaint registered successfully",
   "data": {
-    "complaintId": 2,
     "id": 2,
     "complaintNumber": "CMP-2026-002",
     "complaintAgainst": "Other",
     "complaintBy": {
-      "_id": "6ad8a51e4ff39d392932da30",
-      "memberObjectId": "6ad8a51e4ff39d392932da30",
       "memberId": 1,
       "name": "Rajesh Mehta",
       "business": "Mehta Jewellers"
@@ -1823,36 +2054,6 @@ Response (201 Created):
     },
     "complaintType": "Fraud & Breach of Trust",
     "status": "Open"
-  }
-}
-    "member": {
-      "id": 12,
-      "name": "Yash Soni"
-    },
-    "complaintType": "Payment Issue",
-    "hasPreviousInteraction": false,
-    "preferredResolution": "Requesting immediate payment of pending amount.",
-    "complaintDetails": {
-      "incidentDate": "2026-12-15",
-      "incidentTime": "17:30",
-      "location": "Iscon Cross Road, Ahmedabad",
-      "priority": "High",
-      "proofAvailable": true,
-      "amountInvolved": 450000
-    },
-    "description": {
-      "issueSummary": "Payment not received for gold jewellery order",
-      "detailedDescription": "Payment has not been received despite multiple reminders."
-    },
-    "media": [
-      {
-        "url": "/uploads/payment-proof.jpg",
-        "type": "Photo"
-      }
-    ],
-    "resolutionNotes": "",
-    "createdAt": "23-10-2026 04:37 pm",
-    "updatedAt": "23-10-2026 04:37 pm"
   }
 }
 
@@ -1881,10 +2082,11 @@ Response (200 OK):
     "complaintNumber": "CMP-2026-002",
     "status": "In Progress",
     "complaintAgainst": "Member",
-    "member": {
-      "id": 12,
+    "targetMember": {
+      "memberId": 12,
       "name": "Yash Soni"
     },
+    "againstPerson": null,
     "complaintType": "Payment Issue",
     "hasPreviousInteraction": false,
     "preferredResolution": "Requesting immediate payment of pending amount.",

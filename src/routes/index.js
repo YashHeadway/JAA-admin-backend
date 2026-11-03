@@ -10,6 +10,7 @@ import complaintRoutes from './complaintRoutes.js';
 import postRoutes from './postRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
+import messageRoutes from './messageRoutes.js';
 import adminProfileRoutes from './adminProfileRoutes.js';
 import adminRoutes from './admin.routes.js';
 import { authenticate } from '../middlewares/authMiddleware.js';
@@ -113,6 +114,7 @@ router.use(['/admin/committee', '/admin/admin/committee'], committeeRoutes);
 router.use(['/admin/events', '/admin/admin/events'], eventRoutes);
 router.use(['/admin/groups', '/admin/admin/groups'], groupRoutes);
 router.use(['/admin/broadcasts', '/admin/admin/broadcasts'], broadcastRoutes);
+router.use(['/admin/messages', '/admin/admin/messages'], messageRoutes);
 router.use(['/admin/leads', '/admin/admin/leads'], leadRoutes);
 router.use(['/admin/complaints', '/admin/admin/complaints'], complaintRoutes);
 router.use(['/admin/posts', '/admin/admin/posts'], postRoutes);
@@ -139,6 +141,7 @@ router.use('/committee', committeeRoutes);
 router.use('/events', eventRoutes);
 router.use('/groups', groupRoutes);
 router.use('/broadcasts', broadcastRoutes);
+router.use('/messages', messageRoutes);
 router.use('/leads', leadRoutes);
 router.use('/complaints', complaintRoutes);
 router.use('/posts', postRoutes);
@@ -158,6 +161,7 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
         events: '/admin/events',
         groups: '/admin/groups',
         broadcasts: '/admin/broadcasts',
+        messages: '/admin/messages',
         leads: '/admin/leads',
         complaints: '/admin/complaints',
         posts: '/admin/posts',
@@ -179,6 +183,7 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
         events: '/events',
         groups: '/groups',
         broadcasts: '/broadcasts',
+        messages: '/messages',
         leads: '/leads',
         complaints: '/complaints',
         posts: '/posts',

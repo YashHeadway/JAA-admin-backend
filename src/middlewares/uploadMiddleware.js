@@ -85,6 +85,7 @@ export const handleFormData = (fieldName = 'media') => {
             (isPhotoMode ? req.files.find((f) => photoFields.includes(f.fieldname)) : null) ||
             req.files[0];
 
+          req.file = matched;
           const fileUrl = `/uploads/${matched.filename}`;
           req.body[matched.fieldname] = fileUrl;
 

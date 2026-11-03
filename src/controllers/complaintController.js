@@ -16,7 +16,6 @@ export const getComplaints = asyncHandler(async (req, res) => {
     success: true,
     message: 'Complaints fetched successfully',
     pagination: result.pagination,
-    summary: result.summary,
     data: result.data,
   });
 });
@@ -41,7 +40,8 @@ export const createComplaint = asyncHandler(async (req, res) => {
 
 export const updateComplaintStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const updated = await ComplaintService.updateStatus(id, req.body);
+  const files = req.files || (req.file ? [req.file] : []);
+  const updated = await ComplaintService.updateStatus(id, req.body, files);
   return res.status(200).json({
     success: true,
     status: true,
@@ -57,7 +57,7 @@ export const deleteComplaint = asyncHandler(async (req, res) => {
     status: true,
     message: 'Complaint deleted successfully',
     data: {
-      complaintId: deleted.complaintId !== undefined && !isNaN(Number(deleted.complaintId)) ? Number(deleted.complaintId) : (deleted.id || 1),
+      id: deleted.id !== undefined && !isNaN(Number(deleted.id)) ? Number(deleted.id) : (deleted.complaintId || 1),
     },
   });
 });

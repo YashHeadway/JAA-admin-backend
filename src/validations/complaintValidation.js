@@ -32,6 +32,15 @@ const parseNumber = (val) => {
   return val;
 };
 
+const normalizePriority = (val) => {
+  if (!val || typeof val !== 'string') return val;
+  const lower = val.trim().toLowerCase();
+  if (lower === 'low') return 'Low';
+  if (lower === 'med' || lower === 'medium') return 'Medium';
+  if (lower === 'high') return 'High';
+  return val;
+};
+
 export const complaintBySchema = z.object({
   _id: z.preprocess(emptyToUndefined, z.string().optional()),
   memberObjectId: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -86,7 +95,7 @@ export const complaintDetailsSchema = z.object({
   incidentDate: z.preprocess(emptyToUndefined, z.string().optional().default('')),
   incidentTime: z.preprocess(emptyToUndefined, z.string().optional().default('')),
   location: z.preprocess(emptyToUndefined, z.string().optional().default('Ahmedabad')),
-  priority: z.preprocess(emptyToUndefined, z.enum(['Low', 'Medium', 'High']).optional().default('High')),
+  priority: z.preprocess((val) => normalizePriority(emptyToUndefined(val)), z.enum(['Low', 'Medium', 'High']).optional().default('High')),
   proofAvailable: z.preprocess(parseBoolean, z.boolean().optional().default(true)),
   amountInvolved: z.preprocess(parseNumber, z.number().optional().default(0)),
 });
@@ -225,7 +234,11 @@ export const updateComplaintSchema = z.object({
     },
     z.enum(['Member', 'Other']).optional()
   ),
-  complaintBy: z.preprocess(parseJsonIfNeeded, complaintBySchema.partial().optional()),
+  complaintBy: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  complainant: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  complainantId: z.preprocess(emptyToUndefined, z.union([z.number(), z.string()]).optional()),
+  complainantObjectId: z.preprocess(emptyToUndefined, z.string().optional()),
+
   targetMemberId: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === '') return null;
@@ -234,22 +247,96 @@ export const updateComplaintSchema = z.object({
     },
     z.union([z.number(), z.string()]).nullable().optional()
   ),
+  targetId: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === '') return null;
+      const num = Number(val);
+      return isNaN(num) ? val : num;
+    },
+    z.union([z.number(), z.string()]).nullable().optional()
+  ),
+  target: z.preprocess(parseJsonIfNeeded, z.any().optional()),
   targetMemberObjectId: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  againstMemberId: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === '') return null;
+      const num = Number(val);
+      return isNaN(num) ? val : num;
+    },
+    z.union([z.number(), z.string()]).nullable().optional()
+  ),
+  againstMember: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  targetMember: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  memberId: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || val === '') return null;
+      const num = Number(val);
+      return isNaN(num) ? val : num;
+    },
+    z.union([z.number(), z.string()]).nullable().optional()
+  ),
+  member: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+
   againstPerson: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  complaintPerson: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  person: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+
+  // Optional direct person / member fields
+  name: z.preprocess(emptyToUndefined, z.string().optional()),
+  mobile: z.preprocess(emptyToUndefined, z.string().optional()),
+  mobileNumber: z.preprocess(emptyToUndefined, z.string().optional()),
+  phone: z.preprocess(emptyToUndefined, z.string().optional()),
+  email: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  gstNumber: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  gst: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  address: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  city: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  avatar: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  membershipId: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  company: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  business: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+  firmName: z.preprocess(emptyToUndefined, z.string().nullable().optional()),
+
   complaintType: z.preprocess(emptyToUndefined, z.string().optional()),
+  type: z.preprocess(emptyToUndefined, z.string().optional()),
+  title: z.preprocess(emptyToUndefined, z.string().optional()),
+  subject: z.preprocess(emptyToUndefined, z.string().optional()),
+
   hasPreviousInteraction: z.preprocess(parseBoolean, z.boolean().optional()),
   preferredResolution: z.preprocess(emptyToUndefined, z.string().optional()),
 
-  complaintDetails: z.preprocess(parseJsonIfNeeded, complaintDetailsSchema.partial()).optional(),
-  description: z.preprocess(parseJsonIfNeeded, complaintDescriptionSchema.partial()).optional(),
-  media: z.preprocess(parseMedia, z.array(mediaItemSchema).optional()),
+  complaintDetails: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  description: z.preprocess(parseJsonIfNeeded, z.any().optional()),
+  media: z.preprocess(parseMedia, z.any().optional()),
+
+  // Top-level complaint details aliases
+  incidentDate: z.preprocess(emptyToUndefined, z.string().optional()),
+  incidentTime: z.preprocess(emptyToUndefined, z.string().optional()),
+  location: z.preprocess(emptyToUndefined, z.string().optional()),
+  incidentLocation: z.preprocess(emptyToUndefined, z.string().optional()),
+  proofAvailable: z.preprocess(parseBoolean, z.boolean().optional()),
+  amountInvolved: z.preprocess(parseNumber, z.number().optional()),
+  financialAmount: z.preprocess(parseNumber, z.number().optional()),
+  amount: z.preprocess(parseNumber, z.number().optional()),
+
+  // Top-level description aliases
+  issueSummary: z.preprocess(emptyToUndefined, z.string().optional()),
+  detailedDescription: z.preprocess(emptyToUndefined, z.string().optional()),
+  summary: z.preprocess(emptyToUndefined, z.string().optional()),
+  details: z.preprocess(emptyToUndefined, z.string().optional()),
+  typeSubtitle: z.preprocess(emptyToUndefined, z.string().optional()),
+  executiveSummary: z.preprocess(emptyToUndefined, z.string().optional()),
 
   status: z.preprocess(emptyToUndefined, z.string().optional()),
-  priority: z.preprocess(emptyToUndefined, z.enum(['Low', 'Medium', 'High']).optional()),
+  priority: z.preprocess((val) => normalizePriority(emptyToUndefined(val)), z.enum(['Low', 'Medium', 'High']).optional()),
   resolutionNotes: z.preprocess(emptyToUndefined, z.string().optional()),
   adminRemarks: z.preprocess(emptyToUndefined, z.string().optional()),
+  remarks: z.preprocess(emptyToUndefined, z.string().optional()),
+  notes: z.preprocess(emptyToUndefined, z.string().optional()),
+  note: z.preprocess(emptyToUndefined, z.string().optional()),
+  actionNotes: z.preprocess(emptyToUndefined, z.string().optional()),
   adminAction: z.preprocess(parseJsonIfNeeded, z.any().optional()),
   updatedBy: z.any().optional(),
-});
+}).strict();
 
 export const updateComplaintStatusSchema = updateComplaintSchema;

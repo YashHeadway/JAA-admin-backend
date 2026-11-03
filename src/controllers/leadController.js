@@ -9,10 +9,7 @@ export const getLeads = asyncHandler(async (req, res) => {
     success: true,
     message: 'Leads fetched successfully',
     pagination: result.pagination,
-    data: {
-      pagination: result.pagination,
-      leads: result.leads,
-    },
+    data: result.leads,
   });
 });
 

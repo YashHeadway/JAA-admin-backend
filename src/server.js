@@ -7,28 +7,41 @@ const startServer = async () => {
   // Connect database if MONGO_URI is set
   await connectDB();
 
-  const server = app.listen(env.PORT, '0.0.0.0', () => {
-    const dbStatus = getDbStatus();
-    logger.info('====================================================');
-    logger.info(`🚀 JAA Backend Server listening on port ${env.PORT}`);
-    logger.info(`🌐 Environment: ${env.NODE_ENV}`);
-    logger.info(`🔗 Base URL:    http://localhost:${env.PORT}${env.API_PREFIX}`);
-    logger.info(`❤️  Health check: http://localhost:${env.PORT}/health`);
-    logger.info(`💾 Storage Mode: ${dbStatus.mode}`);
-    logger.info('====================================================');
-  });
+  let activeServer = null;
 
-  // Handle server-level errors (e.g. port already in use)
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      logger.error(`❌ Port ${env.PORT} is already in use (EADDRINUSE). Please terminate the existing process or wait for port to release.`);
-      console.error(`Port ${env.PORT} already in use. Waiting before retry...`);
-    } else {
-      logger.error(`❌ Server error: ${err.message}`);
-      console.error(err);
-    }
-    process.exit(1);
-  });
+  const listenWithRetry = (retries = 5, delay = 1000) => {
+    const server = app.listen(env.PORT, '0.0.0.0', () => {
+      activeServer = server;
+      const dbStatus = getDbStatus();
+      logger.info('====================================================');
+      logger.info(`🚀 JAA Backend Server listening on port ${env.PORT}`);
+      logger.info(`🌐 Environment: ${env.NODE_ENV}`);
+      logger.info(`🔗 Base URL:    http://localhost:${env.PORT}${env.API_PREFIX}`);
+      logger.info(`❤️  Health check: http://localhost:${env.PORT}/health`);
+      logger.info(`💾 Storage Mode: ${dbStatus.mode}`);
+      logger.info('====================================================');
+    });
+
+    // Handle server-level errors (e.g. port already in use during nodemon reload)
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        if (retries > 0) {
+          logger.warn(`⚠️ Port ${env.PORT} busy. Retrying in ${delay}ms... (${retries} attempts left)`);
+          setTimeout(() => {
+            listenWithRetry(retries - 1, delay);
+          }, delay);
+          return;
+        }
+        logger.error(`❌ Port ${env.PORT} is already in use (EADDRINUSE). Please terminate the existing process or wait for port to release.`);
+      } else {
+        logger.error(`❌ Server error: ${err.message}`);
+        console.error(err);
+      }
+      process.exit(1);
+    });
+  };
+
+  listenWithRetry();
 
   // Handle unhandled Promise rejections
   process.on('unhandledRejection', (err) => {
@@ -52,18 +65,26 @@ const startServer = async () => {
       return;
     }
 
-    server.close(() => {
+    if (activeServer) {
+      activeServer.close(() => {
+        process.exit(1);
+      });
+    } else {
       process.exit(1);
-    });
+    }
   });
 
   // Graceful shutdown on termination signals
   const shutdown = (signal) => {
     logger.info(`${signal} signal received: closing HTTP server gracefully.`);
-    server.close(() => {
-      logger.info('HTTP server closed.');
+    if (activeServer) {
+      activeServer.close(() => {
+        logger.info('HTTP server closed.');
+        process.exit(0);
+      });
+    } else {
       process.exit(0);
-    });
+    }
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));

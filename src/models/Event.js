@@ -23,8 +23,19 @@ const eventSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
-        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
-        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
+
+        // Place postedBy, createdAt, updatedAt at bottom
+        const postedBy = ret.postedBy || doc.postedBy || 'Admin';
+        const createdAt = ret.createdAt ? formatDateTime(ret.createdAt) : undefined;
+        const updatedAt = ret.updatedAt ? formatDateTime(ret.updatedAt) : undefined;
+
+        delete ret.postedBy;
+        delete ret.createdAt;
+        delete ret.updatedAt;
+
+        if (postedBy !== undefined) ret.postedBy = postedBy;
+        if (createdAt !== undefined) ret.createdAt = createdAt;
+        if (updatedAt !== undefined) ret.updatedAt = updatedAt;
         return ret;
       },
     },
@@ -33,8 +44,19 @@ const eventSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         delete ret._id;
         delete ret.__v;
-        if (ret.createdAt) ret.createdAt = formatDateTime(ret.createdAt);
-        if (ret.updatedAt) ret.updatedAt = formatDateTime(ret.updatedAt);
+
+        // Place postedBy, createdAt, updatedAt at bottom
+        const postedBy = ret.postedBy || doc.postedBy || 'Admin';
+        const createdAt = ret.createdAt ? formatDateTime(ret.createdAt) : undefined;
+        const updatedAt = ret.updatedAt ? formatDateTime(ret.updatedAt) : undefined;
+
+        delete ret.postedBy;
+        delete ret.createdAt;
+        delete ret.updatedAt;
+
+        if (postedBy !== undefined) ret.postedBy = postedBy;
+        if (createdAt !== undefined) ret.createdAt = createdAt;
+        if (updatedAt !== undefined) ret.updatedAt = updatedAt;
         return ret;
       },
     },
