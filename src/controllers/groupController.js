@@ -109,7 +109,6 @@ export const sendGroupBroadcast = asyncHandler(async (req, res) => {
     status: true,
     message: 'Broadcast sent to group successfully',
     data: created,
-    recentBroadcasts: updatedGroup.recentBroadcasts || [],
   });
 });
 

@@ -54,55 +54,53 @@ const groupSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.memberCount;
-        ret.groupName = ret.groupName || ret.name;
-        ret.name = ret.name || ret.groupName;
-        ret.description = ret.description || ret.about || '';
-        ret.about = ret.about || ret.description || '';
+        delete ret.about;
+        delete ret.groupType;
+        delete ret.createdOn;
+        delete ret.status;
+        delete ret.excelFile;
+        delete ret.recentBroadcasts;
 
-        // Sanitize recentBroadcasts items
-        if (Array.isArray(ret.recentBroadcasts)) {
-          ret.recentBroadcasts = ret.recentBroadcasts.map((b) => {
-            const rawG = b.group_id !== undefined ? b.group_id : b.groupId;
-            let groupObj = null;
-            if (rawG && typeof rawG === 'object' && rawG.id) {
-              groupObj = {
-                id: typeof rawG.id === 'number' ? rawG.id : (Number(rawG.id) || rawG.id),
-                name: rawG.name || rawG.groupName || ret.name,
-              };
-            } else if (rawG !== null && rawG !== undefined && String(rawG).trim() !== '') {
-              const numGId = Number(rawG);
-              if (!isNaN(numGId)) {
-                groupObj = { id: numGId, name: ret.name || ret.groupName || '' };
-              }
-            }
+        const groupName = ret.groupName || ret.name || '';
+        const name = ret.name || ret.groupName || '';
+        const description = ret.description || ret.about || '';
 
+        // Format members array cleanly with all required fields
+        let members = [];
+        if (Array.isArray(ret.members)) {
+          members = ret.members.map((m) => {
+            const mId = m.id !== undefined && m.id !== null ? m.id : m.memberId;
             return {
-              id: b.id,
-              title: b.title || b.broadcastTitle || '',
-              broadcastTitle: b.broadcastTitle || b.title || '',
-              message: b.message || '',
-              sentOn: b.sentOn || '',
-              sendTo: b.sendTo || b.sentTo || ret.name || 'All Members',
-              status: b.status || 'Delivered',
-              attachment: b.attachment || null,
-              group_id: groupObj,
+              id: mId,
+              memberId: m.memberId || mId,
+              membershipId: m.membershipId || '',
+              name: m.name || '',
+              business: m.business || '',
+              mobile: m.mobile || '',
+              email: m.email || '',
+              avatar: m.avatar || null,
             };
           });
         }
 
-        // Ensure createdBy, createdAt, updatedAt are placed at the bottom
+        // Ensure createdBy, createdAt, updatedAt are placed strictly at the bottom
         const createdBy = ret.createdBy || doc.createdBy || 'Admin User';
         const createdAt = ret.createdAt ? formatDateTime(ret.createdAt) : undefined;
         const updatedAt = ret.updatedAt ? formatDateTime(ret.updatedAt) : undefined;
 
-        delete ret.createdBy;
-        delete ret.createdAt;
-        delete ret.updatedAt;
+        const out = {
+          id: ret.id,
+          groupName,
+          name,
+          description,
+          members,
+          createdBy,
+        };
 
-        if (createdBy !== undefined) ret.createdBy = createdBy;
-        if (createdAt !== undefined) ret.createdAt = createdAt;
-        if (updatedAt !== undefined) ret.updatedAt = updatedAt;
-        return ret;
+        if (createdAt !== undefined) out.createdAt = createdAt;
+        if (updatedAt !== undefined) out.updatedAt = updatedAt;
+
+        return out;
       },
     },
     toObject: {
@@ -111,55 +109,51 @@ const groupSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.memberCount;
-        ret.groupName = ret.groupName || ret.name;
-        ret.name = ret.name || ret.groupName;
-        ret.description = ret.description || ret.about || '';
-        ret.about = ret.about || ret.description || '';
+        delete ret.about;
+        delete ret.groupType;
+        delete ret.createdOn;
+        delete ret.status;
+        delete ret.excelFile;
+        delete ret.recentBroadcasts;
 
-        // Sanitize recentBroadcasts items
-        if (Array.isArray(ret.recentBroadcasts)) {
-          ret.recentBroadcasts = ret.recentBroadcasts.map((b) => {
-            const rawG = b.group_id !== undefined ? b.group_id : b.groupId;
-            let groupObj = null;
-            if (rawG && typeof rawG === 'object' && rawG.id) {
-              groupObj = {
-                id: typeof rawG.id === 'number' ? rawG.id : (Number(rawG.id) || rawG.id),
-                name: rawG.name || rawG.groupName || ret.name,
-              };
-            } else if (rawG !== null && rawG !== undefined && String(rawG).trim() !== '') {
-              const numGId = Number(rawG);
-              if (!isNaN(numGId)) {
-                groupObj = { id: numGId, name: ret.name || ret.groupName || '' };
-              }
-            }
+        const groupName = ret.groupName || ret.name || '';
+        const name = ret.name || ret.groupName || '';
+        const description = ret.description || ret.about || '';
 
+        let members = [];
+        if (Array.isArray(ret.members)) {
+          members = ret.members.map((m) => {
+            const mId = m.id !== undefined && m.id !== null ? m.id : m.memberId;
             return {
-              id: b.id,
-              title: b.title || b.broadcastTitle || '',
-              broadcastTitle: b.broadcastTitle || b.title || '',
-              message: b.message || '',
-              sentOn: b.sentOn || '',
-              sendTo: b.sendTo || b.sentTo || ret.name || 'All Members',
-              status: b.status || 'Delivered',
-              attachment: b.attachment || null,
-              group_id: groupObj,
+              id: mId,
+              memberId: m.memberId || mId,
+              membershipId: m.membershipId || '',
+              name: m.name || '',
+              business: m.business || '',
+              mobile: m.mobile || '',
+              email: m.email || '',
+              avatar: m.avatar || null,
             };
           });
         }
 
-        // Ensure createdBy, createdAt, updatedAt are placed at the bottom
         const createdBy = ret.createdBy || doc.createdBy || 'Admin User';
         const createdAt = ret.createdAt ? formatDateTime(ret.createdAt) : undefined;
         const updatedAt = ret.updatedAt ? formatDateTime(ret.updatedAt) : undefined;
 
-        delete ret.createdBy;
-        delete ret.createdAt;
-        delete ret.updatedAt;
+        const out = {
+          id: ret.id,
+          groupName,
+          name,
+          description,
+          members,
+          createdBy,
+        };
 
-        if (createdBy !== undefined) ret.createdBy = createdBy;
-        if (createdAt !== undefined) ret.createdAt = createdAt;
-        if (updatedAt !== undefined) ret.updatedAt = updatedAt;
-        return ret;
+        if (createdAt !== undefined) out.createdAt = createdAt;
+        if (updatedAt !== undefined) out.updatedAt = updatedAt;
+
+        return out;
       },
     },
   }

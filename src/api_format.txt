@@ -1140,32 +1140,19 @@ Response (200 OK):
   "data": [
     {
       "id": 2,
-      "name": "Ahmedabad Members",
       "groupName": "Ahmedabad Members",
-      "about": "This group includes all members from Ahmedabad city.",
+      "name": "Ahmedabad Members",
       "description": "This group includes all members from Ahmedabad city.",
-      "groupType": "All Members",
-      "createdOn": "12 December 2025",
-      "status": true,
       "members": [
         {
           "id": 1,
+          "memberId": 1,
+          "membershipId": "JBAD101",
           "name": "Mike Ross",
+          "business": "Pearson Specter Jewellers",
           "mobile": "+91 9988774455",
           "email": "mike.ross@gmail.com",
           "avatar": "/uploads/members/mike.jpg"
-        }
-      ],
-      "recentBroadcasts": [
-        {
-          "id": 1,
-          "title": "Jewellery Exhibition 2026",
-          "broadcastTitle": "Jewellery Exhibition 2026",
-          "message": "Dear Members, We are excited to announce the upcoming annual jewellery exhibition.",
-          "sentOn": "15 May 2026, 10:30AM",
-          "sendTo": "All Members",
-          "status": "Delivered",
-          "attachment": null
         }
       ],
       "createdBy": "Admin User",
@@ -1188,34 +1175,19 @@ Response (200 OK):
   "message": "Group details fetched successfully",
   "data": {
     "id": 2,
-    "name": "Ahmedabad Members",
     "groupName": "Ahmedabad Members",
-    "about": "This group includes all members from Ahmedabad city.",
+    "name": "Ahmedabad Members",
     "description": "This group includes all members from Ahmedabad city.",
-    "groupType": "All Members",
-    "createdOn": "12 December 2025",
-    "status": true,
     "members": [
       {
         "id": 1,
+        "memberId": 1,
+        "membershipId": "JBAD101",
         "name": "Mike Ross",
+        "business": "Pearson Specter Jewellers",
         "mobile": "+91 9988774455",
         "email": "mike.ross@gmail.com",
-        "avatar": "/uploads/members/mike.jpg",
-        "business": "Pearson Specter Jewellers",
-        "membershipId": "JBAD101"
-      }
-    ],
-    "recentBroadcasts": [
-      {
-        "id": 1,
-        "title": "Jewellery Exhibition 2026",
-        "broadcastTitle": "Jewellery Exhibition 2026",
-        "message": "Dear Members, We are excited to announce the upcoming annual jewellery exhibition.",
-        "sentOn": "15 May 2026, 10:30AM",
-        "sendTo": "All Members",
-        "status": "Delivered",
-        "attachment": null
+        "avatar": "/uploads/members/mike.jpg"
       }
     ],
     "createdBy": "Admin User",
@@ -1225,7 +1197,7 @@ Response (200 OK):
 }
 
 
-[6.3] Create New Group
+[6.3] Create New Group (Create Group Screen)
 --------------------------------------------------
 Method:      POST
 Endpoint:    /api/messages/groups  (or /api/groups, /api/admin/groups)
@@ -1233,15 +1205,13 @@ Headers:     Content-Type: application/json or multipart/form-data
 
 Request Body (Option A: "Select From Members" via JSON):
 {
-  "name": "Ahmedabad Members",                          // (Required) String - "Group Name *"
+  "groupName": "Ahmedabad Members",                     // (Required) String - "Group Name *" (alias: name)
   "description": "This group includes all members...", // (Optional) String - "Description (Optional)"
-  "groupType": "All Members",                          // (Optional) String (default: 'All Members')
-  "addMembers": [1, 2, 41],                            // (Required) Array of member numeric IDs / ObjectIds (alias: memberIds)
-  "status": true                                       // (Optional) Boolean (default: true)
+  "members": [1, 2, 41]                                // (Required) Array of member IDs (selected from Member API)
 }
 
 Request Body (Option B: "Upload Excel" via multipart/form-data):
-- name: "Ahmedabad Members"                             // (Required) Text - "Group Name *"
+- groupName: "Ahmedabad Members"                       // (Required) Text - "Group Name *"
 - description: "This group includes all members..."     // (Optional) Text - "Description (Optional)"
 - file: <Excel/CSV file> (.xlsx, .xls, .csv)            // (Required) File - auto-parses member IDs, mobiles, names into group members
 
@@ -1252,22 +1222,21 @@ Response (201 Created):
   "message": "Group created successfully",
   "data": {
     "id": 5,
-    "name": "Ahmedabad Members",
     "groupName": "Ahmedabad Members",
-    "about": "This group includes all members...",
+    "name": "Ahmedabad Members",
     "description": "This group includes all members...",
-    "groupType": "All Members",
-    "createdOn": "12 December 2025",
-    "status": true,
     "members": [
       {
         "id": 1,
+        "memberId": 1,
+        "membershipId": "JBAD101",
         "name": "Mike Ross",
+        "business": "Pearson Specter Jewellers",
         "mobile": "+91 9988774455",
-        "email": "mike.ross@gmail.com"
+        "email": "mike.ross@gmail.com",
+        "avatar": "/uploads/members/mike.jpg"
       }
     ],
-    "recentBroadcasts": [],
     "createdBy": "Admin User",
     "createdAt": "03-11-2026 02:50 pm",
     "updatedAt": "03-11-2026 02:50 pm"

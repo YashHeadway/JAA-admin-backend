@@ -236,13 +236,6 @@ export class GroupService {
       Group.countDocuments(filter),
     ]);
 
-    // Populate recent broadcasts for all groups in list
-    await Promise.all(
-      items.map(async (grp) => {
-        grp.recentBroadcasts = await this.getGroupRecentBroadcasts(grp);
-      })
-    );
-
     const pagination = formatPaginationMeta(total, parsedPage, parsedLimit);
 
     return {
@@ -313,9 +306,6 @@ export class GroupService {
     if (!group) {
       throw ApiError.notFound(`Group with ID '${id}' was not found`);
     }
-
-    // Load latest broadcasts for this group to ensure real-time accuracy in Recent Broadcast table
-    group.recentBroadcasts = await this.getGroupRecentBroadcasts(group);
 
     return group;
   }
