@@ -1,4 +1,5 @@
 import { Member } from '../models/Member.js';
+import { CommitteeService } from './committeeService.js';
 import { getNextSequence } from '../models/Counter.js';
 import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
 import { ApiError } from '../utils/apiError.js';
@@ -104,6 +105,15 @@ export class MemberService {
       throw ApiError.notFound(`Member with ID '${id}' was not found`);
     }
 
+    // If member status changed to rejected or inactive, remove from all committee positions
+    if (status === 'rejected' || status === 'inactive') {
+      try {
+        await CommitteeService.removeMemberFromAllCommittees(updated.id);
+      } catch (err) {
+        console.error('Failed to remove rejected/inactive member from committees:', err);
+      }
+    }
+
     return updated;
   }
 
@@ -148,6 +158,15 @@ export class MemberService {
       throw ApiError.notFound(`Member with ID '${id}' was not found`);
     }
 
+    // If status updated to rejected or inactive, remove from all committee positions
+    if (cleanUpdates.status === 'rejected' || cleanUpdates.status === 'inactive') {
+      try {
+        await CommitteeService.removeMemberFromAllCommittees(updated.id);
+      } catch (err) {
+        console.error('Failed to remove member from committees:', err);
+      }
+    }
+
     return updated;
   }
 
@@ -156,6 +175,14 @@ export class MemberService {
     if (!deleted) {
       throw ApiError.notFound(`Member with ID '${id}' was not found`);
     }
+
+    // Cascade delete: automatically remove deleted member from all committee positions
+    try {
+      await CommitteeService.removeMemberFromAllCommittees(deleted.id);
+    } catch (err) {
+      console.error('Failed to remove deleted member from committees:', err);
+    }
+
     return deleted;
   }
 

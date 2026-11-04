@@ -40,7 +40,11 @@ export class BroadcastService {
 
     if (groupId) {
       const gNum = Number(groupId);
-      filter.groupId = !isNaN(gNum) ? { $in: [gNum, String(groupId)] } : groupId;
+      const idValues = !isNaN(gNum) ? [gNum, String(groupId)] : [groupId];
+      filter.$or = [
+        { groupId: { $in: idValues } },
+        { 'group_id.id': { $in: idValues } },
+      ];
     }
 
     if (sentTo && sentTo.trim() && sentTo.toLowerCase() !== 'all') {

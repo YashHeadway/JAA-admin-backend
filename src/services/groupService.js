@@ -251,10 +251,18 @@ export class GroupService {
     if (!group) return [];
     try {
       const gIdNum = Number(group.id);
-      const orConditions = [
-        { sentTo: 'All Members' },
-        { sendTo: 'All Members' },
-      ];
+      const orConditions = [];
+
+      if (group.id !== undefined && group.id !== null) {
+        orConditions.push({ groupId: group.id });
+        orConditions.push({ groupId: String(group.id) });
+        orConditions.push({ 'group_id.id': group.id });
+        orConditions.push({ 'group_id.id': String(group.id) });
+        if (!isNaN(gIdNum)) {
+          orConditions.push({ groupId: gIdNum });
+          orConditions.push({ 'group_id.id': gIdNum });
+        }
+      }
 
       if (group.name) {
         orConditions.push({ sentTo: group.name });
@@ -264,17 +272,13 @@ export class GroupService {
         orConditions.push({ sentTo: group.groupName });
         orConditions.push({ sendTo: group.groupName });
       }
-      if (group.id !== undefined && group.id !== null) {
-        orConditions.push({ groupId: group.id });
-        orConditions.push({ groupId: String(group.id) });
-        if (!isNaN(gIdNum)) {
-          orConditions.push({ groupId: gIdNum });
-        }
-      }
 
-      const broadcasts = await Broadcast.find({ $or: orConditions })
-        .sort({ id: -1 })
-        .limit(10);
+      let broadcasts = [];
+      if (orConditions.length > 0) {
+        broadcasts = await Broadcast.find({ $or: orConditions })
+          .sort({ id: -1 })
+          .limit(20);
+      }
 
       if (broadcasts && broadcasts.length > 0) {
         return broadcasts.map((b) => {
@@ -285,7 +289,7 @@ export class GroupService {
           return {
             id: b.id,
             title: b.title || b.broadcastTitle || '',
-            broadcastTitle: b.title || b.broadcastTitle || '',
+            broadcastTitle: b.broadcastTitle || b.title || '',
             message: b.message || '',
             sentOn: b.sentOn || (b.createdAt ? formatDateTime(b.createdAt) : ''),
             sendTo: b.sendTo || b.sentTo || group.name || 'All Members',
@@ -307,7 +311,10 @@ export class GroupService {
       throw ApiError.notFound(`Group with ID '${id}' was not found`);
     }
 
-    return group;
+    const recentBroadcasts = await this.getGroupRecentBroadcasts(group);
+    const groupObj = group.toObject ? group.toObject() : group;
+    groupObj.recentBroadcasts = recentBroadcasts;
+    return groupObj;
   }
 
   static async getMembersForSelect({ search = '', page = 1, limit = 100 } = {}) {

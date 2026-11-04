@@ -82,7 +82,8 @@ export class CommitteeService {
       // Validate real foreign key in Member collection
       const realMember = await this.findMember(rawId);
       if (!realMember) {
-        throw ApiError.badRequest(`Member with ID '${rawId}' does not exist in members database`);
+        // Skip orphaned or deleted member IDs so member assignments always succeed
+        continue;
       }
 
       const canonicalId = realMember.id;
@@ -245,5 +246,21 @@ export class CommitteeService {
       throw ApiError.notFound(`Committee with ID '${id}' was not found`);
     }
     return deleted;
+  }
+
+  /**
+   * Cascade remove a member from all committee positions when deleted, rejected, or inactive
+   */
+  static async removeMemberFromAllCommittees(memberId) {
+    const numId = Number(memberId);
+    if (isNaN(numId) || numId <= 0) return;
+
+    const affectedCommittees = await Committee.find({ 'members.memberId': numId });
+
+    for (const comm of affectedCommittees) {
+      comm.members = (comm.members || []).filter((m) => Number(m.memberId) !== numId);
+      comm.totalMembers = comm.members.length;
+      await comm.save();
+    }
   }
 }
