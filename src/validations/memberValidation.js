@@ -87,3 +87,59 @@ export const updateMemberSchema = z
   })
   .passthrough();
 
+export const mobileRegisterMemberSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name is required').optional(),
+    fullName: z.string().trim().min(2).optional(),
+    business: z.string().trim().min(2, 'Business name is required').optional(),
+    businessName: z.string().trim().min(2).optional(),
+    mobile: z.string().trim().min(8, 'Valid mobile number is required').optional(),
+    phone: z.string().trim().min(8).optional(),
+    email: z.string().trim().email('Valid email address is required'),
+    city: z.string().optional().default('Ahmedabad'),
+    dob: z.string().optional(),
+    address: z.string().optional(),
+    pincode: z.string().optional(),
+    businessType: z.string().optional().default('Retailer'),
+    avatar: z.string().nullable().optional(),
+    image: z.string().nullable().optional(),
+    profilePhoto: z.string().nullable().optional(),
+  })
+  .passthrough()
+  .refine((data) => Boolean(data.name || data.fullName), {
+    message: 'Name is required',
+    path: ['name'],
+  })
+  .refine((data) => Boolean(data.business || data.businessName), {
+    message: 'Business name is required',
+    path: ['business'],
+  })
+  .refine((data) => Boolean(data.mobile || data.phone), {
+    message: 'Valid mobile number is required',
+    path: ['mobile'],
+  });
+
+export const updateMemberProfileSchema = z
+  .object({
+    name: z.string().trim().min(2).optional(),
+    fullName: z.string().trim().min(2).optional(),
+    business: z.string().trim().min(2).optional(),
+    businessName: z.string().trim().min(2).optional(),
+    city: z.string().optional(),
+    dob: z.string().optional(),
+    address: z.string().optional(),
+    pincode: z.string().optional(),
+    businessType: z.string().optional(),
+    avatar: z.string().nullable().optional(),
+    image: z.string().nullable().optional(),
+    profilePhoto: z.string().nullable().optional(),
+    mobile: z.string().trim().min(8).optional(),
+    phone: z.string().trim().min(8).optional(),
+    email: z.preprocess(
+      (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+      z.string().trim().email().optional()
+    ),
+  })
+  .passthrough();
+
+

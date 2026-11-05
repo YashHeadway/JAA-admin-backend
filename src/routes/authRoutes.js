@@ -132,8 +132,19 @@ router.post(
 router.post('/refresh-token', authRateLimiter, handleFormData(), refreshToken);
 router.get('/me', authenticate, getMe);
 
-// Logout (supports /logout, /admin/logout, /admin-logout, /adminLogout)
-router.post(['/logout', '/admin/logout', '/admin-logout', '/adminLogout'], authenticateOptional, logout);
+// Logout (supports /logout, /admin/logout, /admin/admin/logout, /admin-logout, /adminLogout)
+router.all(
+  [
+    '/logout',
+    '/admin/logout',
+    '/admin/admin/logout',
+    '/admin-logout',
+    '/adminLogout',
+    '/admin/admin-logout',
+    '/admin/adminLogout',
+  ],
+  logout
+);
 
 // Profile routes (GET Profile, POST Update Profile, PUT / PATCH)
 router.use('/admin-profile', adminProfileRoutes);

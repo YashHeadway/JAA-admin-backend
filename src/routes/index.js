@@ -24,26 +24,24 @@ const router = Router();
 const isPublicRoute = (req) => {
   const rawPath = (req.path || '').toLowerCase();
   const rawUrl = (req.originalUrl || req.url || '').split('?')[0].toLowerCase();
+  const cleanPath = rawPath.replace(/\/+$/, '');
+  const cleanUrl = rawUrl.replace(/\/+$/, '');
 
   // Root discovery & health endpoints
   if (
-    rawPath === '' ||
-    rawPath === '/' ||
-    rawPath === '/admin' ||
-    rawPath === '/admin/' ||
-    rawPath === '/health' ||
-    rawUrl === '/api' ||
-    rawUrl === '/api/' ||
-    rawUrl === '/api/admin' ||
-    rawUrl === '/api/admin/' ||
-    rawUrl === '/health' ||
-    rawUrl === '/api/health'
+    cleanPath === '' ||
+    cleanPath === '/admin' ||
+    cleanPath === '/health' ||
+    cleanUrl === '/api' ||
+    cleanUrl === '/api/admin' ||
+    cleanUrl === '/health' ||
+    cleanUrl === '/api/health'
   ) {
     return true;
   }
 
   // Static assets for password reset page
-  if (rawPath.includes('/assets/') || rawUrl.includes('/assets/')) {
+  if (cleanPath.includes('/assets/') || cleanUrl.includes('/assets/')) {
     return true;
   }
 
@@ -76,10 +74,10 @@ const isPublicRoute = (req) => {
 
   return publicKeywords.some((keyword) => {
     return (
-      rawPath === `/${keyword}` ||
-      rawPath.endsWith(`/${keyword}`) ||
-      rawUrl === `/${keyword}` ||
-      rawUrl.endsWith(`/${keyword}`)
+      cleanPath === `/${keyword}` ||
+      cleanPath.endsWith(`/${keyword}`) ||
+      cleanUrl === `/${keyword}` ||
+      cleanUrl.endsWith(`/${keyword}`)
     );
   });
 };
@@ -179,6 +177,8 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
       },
       userRoutes: {
         members: '/members',
+        memberRegister: '/members/register',
+        memberProfile: '/members/profile',
         committee: '/committee',
         events: '/events',
         groups: '/groups',

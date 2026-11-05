@@ -40,26 +40,71 @@ app.use(
   })
 );
 
-// Cross-Origin Resource Sharing (CORS)
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
+// Cross-Origin Resource Sharing (CORS) Configuration
+// Supports exact origins with credentials enabled (Never wildcard '*' with credentials)
+const corsOptions = {
+  origin: (origin, callback) => {
+    // 1. Allow mobile apps, curl, Postman, and native HTTP clients (no Origin header)
+    if (!origin) return callback(null, true);
+
+    // 2. Allow if origin is explicitly in CORS_ORIGIN
+    if (env.CORS_ORIGIN && env.CORS_ORIGIN.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // 3. Automatically allow all localhost, 127.0.0.1, local network IPs, and Hoppscotch
+    try {
+      const { hostname } = new URL(origin);
       if (
-        env.CORS_ORIGIN.includes('*') ||
-        env.CORS_ORIGIN.includes(origin) ||
-        env.isDev
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        hostname === '192.168.1.26' ||
+        hostname === (env.LOCAL_IP || '') ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+        hostname === 'hoppscotch.io'
       ) {
         return callback(null, true);
       }
-      return callback(new Error(`Origin '${origin}' not allowed by CORS`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  })
-);
+    } catch {}
+
+    // 4. In development mode, echo back requesting origin
+    if (env.isDev) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Cache-Control',
+    'X-Access-Token',
+    'X-Auth-Token',
+    'X-Admin-Token',
+    'token',
+    'admin_auth_token',
+    'admin-auth-token',
+    'auth_token',
+    'auth-token',
+    'admintoken',
+    'admin-token',
+    'Cookie',
+    'cookie',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range', 'Authorization', 'Set-Cookie'],
+};
+
+app.use(cors(corsOptions));
 
 // HTTP request logger (Morgan streamed into Winston)
 const morganStream = {
@@ -115,6 +160,31 @@ app.use((req, res, next) => {
 // Cookie parser & Compression
 app.use(cookieParser());
 app.use(compression());
+
+// Development-only authentication cookie debugging (Never logs token values)
+if (env.isDev) {
+  app.use((req, res, next) => {
+    const isAuthRoute =
+      req.originalUrl &&
+      (req.originalUrl.includes('/login') ||
+        req.originalUrl.includes('/logout') ||
+        req.originalUrl.includes('/auth') ||
+        req.originalUrl.includes('/admin'));
+
+    if (isAuthRoute) {
+      const cookieNames = req.cookies ? Object.keys(req.cookies) : [];
+      const hasTokenCookie = Boolean(
+        req.cookies?.token || req.cookies?.accessToken || req.cookies?.jwt
+      );
+      const hasAuthHeader = Boolean(req.headers?.authorization);
+
+      logger.info(
+        `[Auth Cookie Debug] ${req.method} ${req.originalUrl} | cookies_received: [${cookieNames.join(', ')}] | has_token_cookie: ${hasTokenCookie} | has_auth_header: ${hasAuthHeader}`
+      );
+    }
+    next();
+  });
+}
 
 // Static file serving for uploads and images
 const uploadsDir = path.resolve(env.UPLOAD_DIR);

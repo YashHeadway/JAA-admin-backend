@@ -75,12 +75,53 @@ export const deleteMember = asyncHandler(async (req, res) => {
 });
 
 export const createMember = asyncHandler(async (req, res) => {
-  const created = await MemberService.createMember(req.body);
+  if (req.file) {
+    req.body.avatar = req.file.filename ? `/uploads/${req.file.filename}` : req.file.path;
+  }
+  const created = await MemberService.createMember(req.body, {
+    creator: 'admin',
+    userId: req.user?._id || req.user?.id || null,
+  });
   return res.status(201).json({
     success: true,
     status: true,
     message: 'Member created successfully',
     data: created,
+  });
+});
+
+export const registerMobileMember = asyncHandler(async (req, res) => {
+  if (req.file) {
+    req.body.avatar = req.file.filename ? `/uploads/${req.file.filename}` : req.file.path;
+  }
+  const created = await MemberService.createMember(req.body, {
+    creator: 'user',
+    userId: req.user?._id || req.user?.id || null,
+  });
+  return res.status(201).json({
+    success: true,
+    status: true,
+    message: 'Member registered successfully. Your profile is pending approval.',
+    data: created,
+  });
+});
+
+export const getMemberProfile = asyncHandler(async (req, res) => {
+  const profile = await MemberService.getMemberProfile(req.user);
+  return res.status(200).json({
+    success: true,
+    message: 'Member profile fetched successfully',
+    data: profile,
+  });
+});
+
+export const updateMemberProfile = asyncHandler(async (req, res) => {
+  const updated = await MemberService.updateMemberProfile(req.user, req.body, req.file);
+  return res.status(200).json({
+    success: true,
+    status: true,
+    message: 'Member profile updated successfully',
+    data: updated,
   });
 });
 

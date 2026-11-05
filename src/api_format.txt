@@ -189,9 +189,10 @@ Response (200 OK):
 [2.3] Admin Dedicated Register
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/admin-register  (or /api/auth/admin-register)
+Endpoint:    /api/admin-register  (or /api/auth/admin-register, /api/admin/register)
 Headers:     Content-Type: application/json
 Auth:        None
+Cookie:      Sets HTTP-only Cookie "token" (SameSite=Lax, Path=/)
 
 Request Body:
 {
@@ -210,17 +211,17 @@ Response (201 Created):
     "role": "Admin",
     "createdAt": "23-10-2026 11:20 am",
     "updatedAt": "23-10-2026 11:20 am"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+  }
 }
 
 
 [2.4] Admin Dedicated Login
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/admin-login  (or /api/auth/admin-login)
+Endpoint:    /api/admin-login  (or /api/auth/admin-login, /api/admin/login)
 Headers:     Content-Type: application/json
 Auth:        None
+Cookie:      Sets HTTP-only Cookie "token" (SameSite=Lax, Path=/)
 
 Request Body:
 {
@@ -239,8 +240,7 @@ Response (200 OK):
     "role": "Admin",
     "createdAt": "21-10-2026 04:55 pm",
     "updatedAt": "23-10-2026 10:25 am"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsIn..."
+  }
 }
 
 
@@ -554,6 +554,7 @@ Response (200 OK):
         "validUntil": null,
         "qrCode": "https://yourdomain.com/verify/JBAD168"
       },
+      "created_by": "admin",
       "createdAt": "28-10-2026 03:13 pm",
       "updatedAt": "30-10-2026 12:30 pm"
     }
@@ -606,18 +607,20 @@ Response (200 OK):
       "validUntil": null,
       "qrCode": "https://yourdomain.com/verify/JBAD168"
     },
+    "created_by": "admin",
     "createdAt": "28-10-2026 03:13 pm",
     "updatedAt": "30-10-2026 12:30 pm"
   }
 }
 
 
-[3.4] Create / Register New Member
+[3.4] Create Member (Admin Panel API)
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/members (or /api/admin/members)
+Endpoint:    /api/admin/members (or /api/members)
 Headers:     Content-Type: application/json or multipart/form-data
 Auth:        Bearer Token
+Note:        Backend automatically assigns "created_by": "admin". Status defaults to "approved".
 
 Request Body:
 {
@@ -630,8 +633,8 @@ Request Body:
   "address": "C.G. Road",                // (Optional) String
   "businessType": "Wholesaler",          // (Optional) String (default: 'Retailer')
   "avatar": "/uploads/avatar.png",       // (Optional) String or File upload
-  "status": "approved",                  // (Optional) 'pending' | 'approved' | 'rejected' (default: 'approved')
-  "rejectionReason": ""                  // (Optional) String - rejection reason or notes (or 'reason')
+  "status": "approved",                  // (Optional) 'approved' | 'rejected' (default: 'approved')
+  "rejectionReason": ""                  // (Optional) String - rejection reason if status is rejected
 }
 
 Response (201 Created):
@@ -660,8 +663,158 @@ Response (201 Created):
       "validUntil": null,
       "qrCode": "https://yourdomain.com/verify/JBAD169"
     },
+    "created_by": "admin",
     "createdAt": "30-10-2026 04:30 pm",
     "updatedAt": "30-10-2026 04:30 pm"
+  }
+}
+
+
+[3.4A] Member Self-Registration (Mobile App API)
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/members/register
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Public (or optional Bearer Token to associate authenticated user)
+Note:        Backend automatically sets "created_by": "user", initial status strictly "pending",
+             and idCard.status "inactive". Users cannot elevate status or supply admin fields.
+
+Request Body:
+{
+  "name": "Pooja Sharma",                // (Required) String (min 2 chars)
+  "business": "Sharma Art Jewellers",    // (Required) String (min 2 chars)
+  "mobile": "9825123456",                // (Required) String (min 8 chars)
+  "email": "pooja.sharma@example.com",   // (Required) String (valid email)
+  "city": "Ahmedabad",                   // (Optional) String (default: 'Ahmedabad')
+  "dob": "1994-08-15",                   // (Optional) String
+  "address": "Satellite Road, Ahmedabad",// (Optional) String
+  "pincode": "380015",                   // (Optional) String
+  "businessType": "Retailer",            // (Optional) String (default: 'Retailer')
+  "avatar": "/uploads/profile.png"       // (Optional) String or File upload
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "status": true,
+  "message": "Member registered successfully. Your profile is pending approval.",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Art Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Satellite Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.png",
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 11:25 am",
+    "updatedAt": "05-11-2026 11:25 am"
+  }
+}
+
+
+[3.4B] Get Own Member Profile (Mobile App API)
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/members/profile
+Headers:     Authorization: Bearer <token>
+Auth:        Required (Mobile User Authentication)
+Description: Fetches only the authenticated user's own member profile.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Member profile fetched successfully",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Art Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Satellite Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.png",
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 11:25 am",
+    "updatedAt": "05-11-2026 11:25 am"
+  }
+}
+
+
+[3.4C] Update Own Member Profile (Mobile App API)
+--------------------------------------------------
+Method:      PATCH (or PUT)
+Endpoint:    /api/members/profile
+Headers:     Content-Type: application/json or multipart/form-data
+             Authorization: Bearer <token>
+Auth:        Required (Mobile User Authentication)
+Description: Updates permitted profile fields. Forbidden fields like membershipId, status,
+             created_by, and idCard cannot be modified by the user.
+
+Request Body:
+{
+  "name": "Pooja Sharma",
+  "business": "Sharma Fine Jewels",
+  "city": "Ahmedabad",
+  "address": "Bodakdev, Ahmedabad",
+  "pincode": "380054",
+  "businessType": "Manufacturer"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Member profile updated successfully",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Fine Jewels",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Bodakdev, Ahmedabad",
+    "businessType": "Manufacturer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.png",
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 11:25 am",
+    "updatedAt": "05-11-2026 11:30 am"
   }
 }
 

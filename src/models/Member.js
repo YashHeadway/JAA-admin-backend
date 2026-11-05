@@ -44,6 +44,17 @@ const memberSchema = new mongoose.Schema(
       type: idCardSchema,
       default: undefined,
     },
+    created_by: {
+      type: String,
+      enum: ['admin', 'user'],
+      required: true,
+      default: 'admin',
+    },
+    createdByUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -53,6 +64,7 @@ const memberSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.country;
+        delete ret.createdByUser;
 
         const cardNum = ret.membershipId || (ret.id ? `JBAD${150 + ret.id}` : '');
         const joinedDate = ret.joinedOn ? formatDateOnly(ret.joinedOn) : formatDateOnly(ret.createdAt || new Date());
@@ -83,6 +95,7 @@ const memberSchema = new mongoose.Schema(
           status: ret.status,
           rejectionReason: ret.rejectionReason || '',
           idCard,
+          created_by: ret.created_by || 'admin',
           createdAt: createdAtFormatted,
           updatedAt: updatedAtFormatted,
         };
@@ -100,6 +113,7 @@ const memberSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.country;
+        delete ret.createdByUser;
 
         const cardNum = ret.membershipId || (ret.id ? `JBAD${150 + ret.id}` : '');
         const joinedDate = ret.joinedOn ? formatDateOnly(ret.joinedOn) : formatDateOnly(ret.createdAt || new Date());
@@ -130,6 +144,7 @@ const memberSchema = new mongoose.Schema(
           status: ret.status,
           rejectionReason: ret.rejectionReason || '',
           idCard,
+          created_by: ret.created_by || 'admin',
           createdAt: createdAtFormatted,
           updatedAt: updatedAtFormatted,
         };

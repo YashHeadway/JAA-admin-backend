@@ -106,6 +106,25 @@ const ensureCollectionsAndAdmin = async () => {
       logger.warn(`Admin profile sync note: ${syncErr.message}`);
     }
 
+    // Safely backfill created_by: 'admin' for existing members missing created_by
+    try {
+      const backfillResult = await Member.updateMany(
+        {
+          $or: [
+            { created_by: { $exists: false } },
+            { created_by: null },
+            { created_by: '' },
+          ],
+        },
+        { $set: { created_by: 'admin' } }
+      );
+      if (backfillResult.modifiedCount > 0) {
+        logger.info(`✅ Backfilled created_by: 'admin' for ${backfillResult.modifiedCount} existing members.`);
+      }
+    } catch (bfErr) {
+      logger.warn(`Member created_by backfill note: ${bfErr.message}`);
+    }
+
     logger.info('📊 All collections verified and ready in MongoDB Compass (JAA_Backend).');
   } catch (err) {
     logger.warn(`⚠️ Collection initialization note: ${err.message}`);

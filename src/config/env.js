@@ -5,13 +5,17 @@ import path from 'path';
 dotenv.config();
 
 const parseOrigins = (originsStr) => {
-  if (!originsStr) return ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3001'];
+  if (!originsStr || originsStr.trim() === '*') return ['*'];
   return originsStr.split(',').map((o) => o.trim()).filter(Boolean);
 };
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT, 10) || 5000,
+  HOST: process.env.HOST || '0.0.0.0',
+  LOCAL_IP: process.env.LOCAL_IP || '192.168.1.26',
+  BACKEND_URL: process.env.BACKEND_URL || 'http://192.168.1.26:5000',
+  ADMIN_API_URL: process.env.ADMIN_API_URL || 'http://192.168.1.26:5000/api/admin',
   API_PREFIX: process.env.API_PREFIX || '/api',
   CORS_ORIGIN: parseOrigins(process.env.CORS_ORIGIN),
   JWT_SECRET: process.env.JWT_SECRET || 'jaa_super_secret_jwt_key_2026_default_fallback',

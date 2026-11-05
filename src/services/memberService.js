@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import { Member } from '../models/Member.js';
+import { User } from '../models/User.js';
 import { CommitteeService } from './committeeService.js';
 import { getNextSequence } from '../models/Counter.js';
 import { getPagination, formatPaginationMeta } from '../utils/pagination.js';
@@ -186,44 +188,106 @@ export class MemberService {
     return deleted;
   }
 
-  static async createMember(memberData) {
-    let id = await getNextSequence('members');
-    const rejectionReason = memberData.rejectionReason !== undefined
-      ? memberData.rejectionReason
-      : (memberData.reason !== undefined ? memberData.reason : '');
+  static async createMember(memberData, { creator = 'admin', userId = null } = {}) {
+    const safeCreator = (creator === 'user') ? 'user' : 'admin';
 
     const name = (memberData.name || memberData.fullName || '').trim();
     const business = (memberData.business || memberData.businessName || '').trim();
     const mobile = (memberData.mobile || memberData.phone || '').trim();
+    const email = (memberData.email || '').trim().toLowerCase();
     const avatar = memberData.avatar || memberData.image || memberData.profilePhoto || null;
 
-    // When admin creates any member, status automatically takes 'approved'
-    // If explicitly provided as 'rejected', it remains 'rejected', otherwise automatically 'approved'
-    let rawStatus = memberData.status;
-    if (typeof rawStatus === 'string') {
-      rawStatus = rawStatus.trim().toLowerCase();
+    // Validate duplicates for mobile and email
+    if (mobile) {
+      const existingMobile = await Member.findOne({ mobile });
+      if (existingMobile) {
+        throw ApiError.conflict(`A member with mobile number '${mobile}' already exists`);
+      }
     }
-    const status = (rawStatus === 'rejected') ? 'rejected' : 'approved';
-    const cardStatus = status === 'rejected' ? 'inactive' : 'active';
+
+    if (email) {
+      const existingEmail = await Member.findOne({ email });
+      if (existingEmail) {
+        throw ApiError.conflict(`A member with email '${email}' already exists`);
+      }
+    }
+
+    // Resolve user ObjectId if provided
+    let userObjectId = null;
+    if (userId) {
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        userObjectId = userId;
+      } else {
+        const userDoc = await User.findOne({ id: userId });
+        if (userDoc) {
+          userObjectId = userDoc._id;
+        }
+      }
+    }
+
+    // Determine status & card status based on creator
+    let status;
+    let cardStatus;
+    let rejectionReason = '';
+
+    if (safeCreator === 'user') {
+      // Mobile user registration is strictly pending
+      status = 'pending';
+      cardStatus = 'inactive';
+      rejectionReason = '';
+    } else {
+      // Admin creation defaults to approved unless explicitly set to rejected
+      let rawStatus = memberData.status;
+      if (typeof rawStatus === 'string') {
+        rawStatus = rawStatus.trim().toLowerCase();
+      }
+      status = (rawStatus === 'rejected') ? 'rejected' : 'approved';
+      cardStatus = status === 'rejected' ? 'inactive' : 'active';
+      rejectionReason = memberData.rejectionReason !== undefined
+        ? memberData.rejectionReason
+        : (memberData.reason !== undefined ? memberData.reason : '');
+    }
+
+    let id = await getNextSequence('members');
 
     const buildPayload = (assignedId) => {
-      const mid = memberData.membershipId || `JBAD${150 + assignedId}`;
+      const mid = (safeCreator === 'admin' && memberData.membershipId)
+        ? memberData.membershipId
+        : `JBAD${150 + assignedId}`;
       const joinedDate = formatDateOnly(memberData.joinedOn || new Date());
+
+      const cleanData = { ...memberData };
+      delete cleanData._id;
+      delete cleanData.id;
+      delete cleanData.created_by;
+      delete cleanData.createdByUser;
+
+      if (safeCreator === 'user') {
+        delete cleanData.status;
+        delete cleanData.membershipId;
+        delete cleanData.idCard;
+        delete cleanData.rejectionReason;
+        delete cleanData.reason;
+      }
+
       return {
-        ...memberData,
+        ...cleanData,
         id: assignedId,
         membershipId: mid,
         name: name || memberData.name,
         business: business || memberData.business,
         mobile: mobile || memberData.mobile,
+        email: email || memberData.email,
         avatar,
         joinedOn: joinedDate,
         status,
         rejectionReason: status === 'rejected' ? rejectionReason : '',
+        created_by: safeCreator,
+        createdByUser: userObjectId,
         idCard: {
           cardNumber: mid,
-          status: memberData.idCard?.status || cardStatus,
-          issuedAt: memberData.idCard?.issuedAt ? formatDateOnly(memberData.idCard.issuedAt) : joinedDate,
+          status: (safeCreator === 'admin' && memberData.idCard?.status) ? memberData.idCard.status : cardStatus,
+          issuedAt: (safeCreator === 'admin' && memberData.idCard?.issuedAt) ? formatDateOnly(memberData.idCard.issuedAt) : joinedDate,
           validUntil: memberData.idCard?.validUntil || null,
           qrCode: memberData.idCard?.qrCode || `https://yourdomain.com/verify/${mid}`,
         },
@@ -242,6 +306,121 @@ export class MemberService {
     }
   }
 
+  static async findMemberForUser(user) {
+    if (!user) {
+      throw ApiError.unauthorized('Authentication required');
+    }
+
+    let member = null;
+
+    // 1. Try finding by createdByUser
+    if (user._id && mongoose.Types.ObjectId.isValid(user._id)) {
+      member = await Member.findOne({ createdByUser: user._id });
+    }
+    if (!member && user.id) {
+      if (mongoose.Types.ObjectId.isValid(user.id)) {
+        member = await Member.findOne({ createdByUser: user.id });
+      }
+      if (!member) {
+        const userDoc = await User.findOne({ id: user.id });
+        if (userDoc) {
+          member = await Member.findOne({ createdByUser: userDoc._id });
+        }
+      }
+    }
+
+    // 2. Fallback to email
+    if (!member && user.email) {
+      member = await Member.findOne({ email: user.email.trim().toLowerCase() });
+    }
+
+    // 3. Fallback to mobile
+    if (!member && user.mobile) {
+      member = await Member.findOne({ mobile: user.mobile.trim() });
+    }
+
+    return member;
+  }
+
+  static async getMemberProfile(user) {
+    const member = await this.findMemberForUser(user);
+    if (!member) {
+      throw ApiError.notFound('Member profile not found for this user');
+    }
+    return member;
+  }
+
+  static async updateMemberProfile(user, updates = {}, file = null) {
+    const member = await this.findMemberForUser(user);
+    if (!member) {
+      throw ApiError.notFound('Member profile not found for this user');
+    }
+
+    const cleanUpdates = {};
+
+    // Permitted fields only
+    if (updates.name || updates.fullName) {
+      cleanUpdates.name = (updates.name || updates.fullName).trim();
+    }
+    if (updates.business || updates.businessName) {
+      cleanUpdates.business = (updates.business || updates.businessName).trim();
+    }
+    if (updates.city !== undefined) cleanUpdates.city = updates.city;
+    if (updates.dob !== undefined) cleanUpdates.dob = updates.dob;
+    if (updates.address !== undefined) cleanUpdates.address = updates.address;
+    if (updates.pincode !== undefined) cleanUpdates.pincode = updates.pincode;
+    if (updates.businessType !== undefined) cleanUpdates.businessType = updates.businessType;
+
+    // Handle avatar
+    if (file) {
+      cleanUpdates.avatar = file.filename ? `/uploads/${file.filename}` : (file.path || file.url);
+    } else if (updates.avatar !== undefined || updates.image !== undefined || updates.profilePhoto !== undefined) {
+      cleanUpdates.avatar = updates.avatar || updates.image || updates.profilePhoto || null;
+    }
+
+    // Mobile update with uniqueness check
+    const newMobile = (updates.mobile || updates.phone || '').trim();
+    if (newMobile && newMobile !== member.mobile) {
+      const existingMobile = await Member.findOne({ mobile: newMobile, id: { $ne: member.id } });
+      if (existingMobile) {
+        throw ApiError.conflict(`Mobile number '${newMobile}' is already in use by another member`);
+      }
+      cleanUpdates.mobile = newMobile;
+    }
+
+    // Email update with uniqueness check
+    const newEmail = (updates.email || '').trim().toLowerCase();
+    if (newEmail && newEmail !== member.email) {
+      const existingEmail = await Member.findOne({ email: newEmail, id: { $ne: member.id } });
+      if (existingEmail) {
+        throw ApiError.conflict(`Email '${newEmail}' is already in use by another member`);
+      }
+      cleanUpdates.email = newEmail;
+    }
+
+    const updated = await Member.findOneAndUpdate(
+      { id: member.id },
+      cleanUpdates,
+      { returnDocument: 'after' }
+    );
+
+    return updated;
+  }
+
+  static async backfillCreatedBy() {
+    const result = await Member.updateMany(
+      {
+        $or: [
+          { created_by: { $exists: false } },
+          { created_by: null },
+          { created_by: '' },
+        ],
+      },
+      { $set: { created_by: 'admin' } }
+    );
+    return result;
+  }
+
   static async bulkCreateMembers(membersList) {
     if (!Array.isArray(membersList) || membersList.length === 0) {
       throw ApiError.badRequest('No member records provided for import');
@@ -253,7 +432,7 @@ export class MemberService {
     for (let i = 0; i < membersList.length; i++) {
       const row = membersList[i];
       try {
-        const created = await this.createMember(row);
+        const created = await this.createMember(row, { creator: 'admin' });
         createdMembers.push(created);
       } catch (err) {
         errors.push({
