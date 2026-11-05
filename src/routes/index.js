@@ -134,7 +134,7 @@ router.use('/update-profile', adminProfileRoutes);
 router.use('/updateProfile', adminProfileRoutes);
 router.use('/admin-update-profile', adminProfileRoutes);
 router.use('/adminUpdateProfile', adminProfileRoutes);
-router.use('/members', memberRoutes);
+router.use(['/members', '/member'], memberRoutes);
 router.use('/committee', committeeRoutes);
 router.use('/events', eventRoutes);
 router.use('/groups', groupRoutes);
@@ -177,8 +177,6 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
       },
       userRoutes: {
         members: '/members',
-        memberRegister: '/members/register',
-        memberProfile: '/members/profile',
         committee: '/committee',
         events: '/events',
         groups: '/groups',
@@ -189,6 +187,15 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
         posts: '/posts',
         dashboard: '/dashboard',
         upload: '/upload',
+        auth: {
+          memberRegister: '/members/register',
+          memberLogin: '/members/login',
+          memberForgotPassword: '/members/forgot-password',
+          memberResetPassword: '/members/reset-password',
+          memberChangePassword: '/members/change-password',
+          memberProfile: '/members/profile',
+          memberLogout: '/members/logout',
+        },
       },
     },
   });

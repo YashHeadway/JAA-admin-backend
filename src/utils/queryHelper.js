@@ -14,17 +14,22 @@ export const buildIdQuery = (id) => {
 
   // 24-char hex string is a MongoDB ObjectId
   if (/^[0-9a-fA-F]{24}$/.test(str)) {
-    return { _id: str };
+    return { $or: [{ _id: str }, { membershipId: str }] };
   }
 
   const num = Number(str);
   if (!isNaN(num) && num > 0) {
-    return { id: num };
+    return { $or: [{ id: num }, { membershipId: str }] };
   }
 
   if (mongoose.Types.ObjectId.isValid(str)) {
-    return { _id: str };
+    return { $or: [{ _id: str }, { membershipId: str }] };
   }
 
-  return { id: -1 }; // will match nothing safely without throwing CastError
+  // Support membershipId like "JBAD203" or string IDs
+  if (str) {
+    return { membershipId: str };
+  }
+
+  return { id: -1 };
 };

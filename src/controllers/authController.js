@@ -59,8 +59,8 @@ export const register = asyncHandler(async (req, res) => {
   return res.status(201).json({
     success: true,
     message: 'Registration successful',
-    token,
     data: userData,
+    token,
   });
 });
 
@@ -89,8 +89,8 @@ export const login = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Login successful',
-    token,
     data: userData,
+    token,
   });
 });
 
@@ -118,8 +118,8 @@ export const adminRegister = asyncHandler(async (req, res) => {
   return res.status(201).json({
     success: true,
     message: 'Registration successful',
-    token,
     data: userData,
+    token,
   });
 });
 
@@ -148,8 +148,8 @@ export const adminLogin = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Login successful',
-    token,
     data: userData,
+    token,
   });
 });
 

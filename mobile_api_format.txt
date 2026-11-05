@@ -1,0 +1,384 @@
+====================================================================================================
+               JAA MOBILE APP - MEMBER AUTHENTICATION & PROFILE REST API SPECIFICATION
+====================================================================================================
+Base URL:          http://localhost:5000/api  (or http://192.168.1.26:5000/api)
+Route Group:       /api/members/*  (also available at /api/member/*)
+Discovery:         GET /api (contains userRoutes.auth)
+Supported Encoding: application/json, multipart/form-data, application/x-www-form-urlencoded
+Authentication:    Bearer Token ("Authorization: Bearer <token>") OR Cookie ("token")
+Token Placement:   In all authentication responses, "token" is returned at the very end of the JSON object.
+====================================================================================================
+
+TABLE OF CONTENTS
+----------------------------------------------------------------------------------------------------
+1. DISCOVERY ENDPOINT & USER ROUTES (GET /api)
+2. MEMBER REGISTER (POST /api/members/register)
+3. MEMBER LOGIN (POST /api/members/login)
+4. MEMBER FORGOT PASSWORD (POST /api/members/forgot-password)
+5. MEMBER RESET PASSWORD (POST /api/members/reset-password)
+6. MEMBER CHANGE PASSWORD (POST /api/members/change-password)
+7. GET OWN MEMBER PROFILE (GET /api/members/profile)
+8. UPDATE OWN MEMBER PROFILE (PATCH / PUT /api/members/profile)
+9. MEMBER LOGOUT (POST /api/members/logout)
+
+
+====================================================================================================
+1. DISCOVERY ENDPOINT & USER ROUTES
+====================================================================================================
+
+Endpoint:    GET /api  (or GET /api/admin)
+Auth:        None
+Description: Returns server metadata and the complete userRoutes map including authentication.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Welcome to JAA Admin REST API",
+  "version": "1.0.0",
+  "documentation": {
+    "userRoutes": {
+      "members": "/members",
+      "committee": "/committee",
+      "events": "/events",
+      "groups": "/groups",
+      "broadcasts": "/broadcasts",
+      "messages": "/messages",
+      "leads": "/leads",
+      "complaints": "/complaints",
+      "posts": "/posts",
+      "dashboard": "/dashboard",
+      "upload": "/upload",
+      "auth": {
+        "memberRegister": "/members/register",
+        "memberLogin": "/members/login",
+        "memberForgotPassword": "/members/forgot-password",
+        "memberResetPassword": "/members/reset-password",
+        "memberChangePassword": "/members/change-password",
+        "memberProfile": "/members/profile",
+        "memberLogout": "/members/logout"
+      }
+    }
+  }
+}
+
+
+====================================================================================================
+2. MEMBER REGISTER (MOBILE SIGN UP)
+====================================================================================================
+
+Method:      POST
+Endpoint:    /api/members/register  (also: /api/member/register, /api/members/signup)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None (Public)
+Description: Creates a User account (role: Member) and a Member entry (status: pending).
+             Returns the member data and authenticates the user with a JWT token (token is last).
+
+Request Body (Exact fields matching Mobile UI screen + Required Password):
+{
+  "fullName": "Pooja Sharma",                 // (Required) String - Full Name (or "name")
+  "businessName": "Sharma Art Jewellers",     // (Required) String - Business Name (or "business")
+  "businessType": "Retailer",                 // (Optional) String - Dropdown (default: 'Retailer')
+  "email": "pooja.sharma@example.com",        // (Required) String - Email Address (used for login)
+  "mobile": "9825123456",                     // (Required) String - Mobile Number (or "phone")
+  "city": "Ahmedabad",                        // (Optional) String - City (default: 'Ahmedabad')
+  "password": "password123",                  // (Required) String - Min 6 chars (strictly required for login)
+  "confirmPassword": "password123"            // (Optional) String - Must match password if provided
+}
+
+Note: The "password" field is STRICTLY REQUIRED on member registration. Without it, the API rejects the request with HTTP 400 ("Password is required and must be at least 6 characters"). Additional optional fields like "avatar", "address", "pincode", "dob" are also supported.
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Member registered successfully. Your profile is pending approval.",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Art Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Satellite Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.jpg",
+    "isActive": false,
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 03:20 pm",
+    "updatedAt": "05-11-2026 03:20 pm"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+
+====================================================================================================
+3. MEMBER LOGIN (MOBILE SIGN IN)
+====================================================================================================
+
+Method:      POST
+Endpoint:    /api/members/login  (also: /api/member/login, /api/members/signin)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None (Public)
+Description: Authenticates member by registered email address and password.
+             Returns member profile and JWT token (token is last).
+
+Request Body (Login with Email & Password):
+{
+  "email": "pooja.sharma@example.com",        // (Required) String - Registered Email Address
+  "password": "password123"                   // (Required) String - Password
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Art Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Satellite Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.jpg",
+    "isActive": false,
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 03:20 pm",
+    "updatedAt": "05-11-2026 03:20 pm"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+Error Responses:
+- 400 Bad Request:  { "success": false, "message": "Email or mobile number is required" }
+- 401 Unauthorized: { "success": false, "message": "Invalid email/mobile or password" }
+
+
+====================================================================================================
+4. MEMBER FORGOT PASSWORD
+====================================================================================================
+
+Method:      POST
+Endpoint:    /api/members/forgot-password  (also: /api/members/forget-password)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None (Public)
+Description: Generates a 1-hour secure reset token and sends a password reset email to the member.
+             In development mode, "resetToken" is included in response for easy testing.
+
+Request Body (Option A - By Email):
+{
+  "email": "pooja.sharma@example.com"
+}
+
+Request Body (Option B - By Mobile):
+{
+  "mobile": "9825123456"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link will be sent.",
+  "resetToken": "a1b2c3d4e5f6..."
+}
+
+
+====================================================================================================
+5. MEMBER RESET PASSWORD
+====================================================================================================
+
+Method:      POST
+Endpoint:    /api/members/reset-password  (also: /api/member/reset-password)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        None (Public with token)
+Description: Sets a new password using the reset token obtained from forgot-password.
+
+Request Body:
+{
+  "token": "a1b2c3d4e5f6...",                 // (Required) String - Reset token
+  "newPassword": "newSecretPassword123",      // (Required) String - Min 6 chars
+  "confirmPassword": "newSecretPassword123",  // (Required) String - Must match newPassword
+  "email": "pooja.sharma@example.com"         // (Optional) String
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Password reset successfully."
+}
+
+Error Responses:
+- 400 Bad Request: { "success": false, "message": "Invalid or expired password reset token." }
+- 400 Bad Request: { "success": false, "message": "New password and confirm password do not match." }
+
+
+====================================================================================================
+6. MEMBER CHANGE PASSWORD
+====================================================================================================
+
+Method:      POST
+Endpoint:    /api/members/change-password  (also: /api/member/change-password)
+Headers:     Content-Type: application/json or multipart/form-data
+             Authorization: Bearer <token>
+Auth:        Required (Authenticated Member)
+Description: Allows an authenticated member to change their current password.
+
+Request Body:
+{
+  "currentPassword": "password123",           // (Required) String - Current valid password
+  "newPassword": "myNewStrongPassword456",    // (Required) String - Min 6 chars
+  "confirmPassword": "myNewStrongPassword456" // (Required) String - Must match newPassword
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Password changed successfully."
+}
+
+Error Responses:
+- 400 Bad Request:  { "success": false, "message": "Current password is incorrect." }
+- 400 Bad Request:  { "success": false, "message": "New password and confirm password do not match." }
+- 401 Unauthorized: { "success": false, "message": "Authentication required" }
+
+
+====================================================================================================
+7. GET OWN MEMBER PROFILE
+====================================================================================================
+
+Method:      GET
+Endpoint:    /api/members/profile  (also: /api/member/profile)
+Headers:     Authorization: Bearer <token>
+Auth:        Required (Authenticated Member)
+Description: Retrieves the full profile of the currently logged-in member.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Member profile fetched successfully",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Art Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Satellite Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.jpg",
+    "isActive": false,
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 03:20 pm",
+    "updatedAt": "05-11-2026 03:20 pm"
+  }
+}
+
+
+====================================================================================================
+8. UPDATE OWN MEMBER PROFILE
+====================================================================================================
+
+Method:      PATCH or PUT
+Endpoint:    /api/members/profile  (also: /api/member/profile)
+Headers:     Content-Type: application/json or multipart/form-data
+             Authorization: Bearer <token>
+Auth:        Required (Authenticated Member)
+Description: Updates the logged-in member's profile details and/or uploads a new avatar.
+
+Request Body (JSON or Form-Data):
+{
+  "name": "Pooja A. Sharma",                  // (Optional) String
+  "business": "Sharma Heritage Jewellers",    // (Optional) String
+  "city": "Ahmedabad",                        // (Optional) String
+  "address": "Sindhu Bhavan Road, Ahmedabad", // (Optional) String
+  "pincode": "380054",                        // (Optional) String
+  "dob": "1994-08-15",                        // (Optional) String
+  "avatar": "/uploads/new-photo.jpg"          // (Optional) String URL or file upload (field: avatar)
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Member profile updated successfully",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja A. Sharma",
+    "business": "Sharma Heritage Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Sindhu Bhavan Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/new-photo.jpg",
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 03:20 pm",
+    "updatedAt": "05-11-2026 03:25 pm"
+  }
+}
+
+
+====================================================================================================
+9. MEMBER LOGOUT
+====================================================================================================
+
+Method:      POST  (also accepts GET)
+Endpoint:    /api/members/logout  (also: /api/member/logout, /api/logout)
+Headers:     Authorization: Bearer <token> (optional)
+Auth:        None / Optional
+Description: Revokes the member's JWT token in TokenBlacklist and clears authentication cookies.
+             Always returns 200 OK. Subsequent attempts to call protected member routes with the old
+             token return 401 Unauthorized.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Logout successful"
+}
+
+====================================================================================================
+

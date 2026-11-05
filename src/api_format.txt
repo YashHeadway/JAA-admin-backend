@@ -619,8 +619,8 @@ Response (200 OK):
 Method:      POST
 Endpoint:    /api/admin/members (or /api/members)
 Headers:     Content-Type: application/json or multipart/form-data
-Auth:        Bearer Token
-Note:        Backend automatically assigns "created_by": "admin". Status defaults to "approved".
+Auth:        Bearer Token (Optional on /api/members; required on /api/admin/members)
+Note:        When created by Admin, backend assigns "created_by": "admin" and "status": "approved". When created/registered as user (or if "created_by": "user" is passed), backend assigns "created_by": "user" and "status": "pending".
 
 Request Body:
 {
@@ -628,13 +628,16 @@ Request Body:
   "business": "Mehta Gold & Silver",     // (Required) String (min 2 chars)
   "mobile": "9898012345",                // (Required) String (min 8 chars)
   "email": "rajesh@mehtajewels.com",     // (Required) String (valid email)
+  "password": "customPassword123",       // (Required) String (min 6 chars - Member login password)
+  "confirmPassword": "customPassword123",// (Optional) String (must match password if provided)
   "city": "Ahmedabad",                   // (Optional) String (default: 'Ahmedabad')
   "dob": "1985-06-25",                   // (Optional) String
   "address": "C.G. Road",                // (Optional) String
   "businessType": "Wholesaler",          // (Optional) String (default: 'Retailer')
   "avatar": "/uploads/avatar.png",       // (Optional) String or File upload
-  "status": "approved",                  // (Optional) 'approved' | 'rejected' (default: 'approved')
-  "rejectionReason": ""                  // (Optional) String - rejection reason if status is rejected
+  "status": "active",                    // (Optional) 'active' | 'inactive' | 'pending' | 'approved' | 'rejected' (default: 'active')
+  "isActive": true,                      // (Optional) Boolean (default: true)
+  "rejectionReason": ""                  // (Optional) String - rejection reason if status is rejected/inactive
 }
 
 Response (201 Created):
@@ -654,7 +657,8 @@ Response (201 Created):
     "businessType": "Wholesaler",
     "joinedOn": "30-10-2026",
     "avatar": "/uploads/avatar.png",
-    "status": "approved",
+    "isActive": true,
+    "status": "active",
     "rejectionReason": "",
     "idCard": {
       "cardNumber": "JBAD169",
@@ -670,33 +674,32 @@ Response (201 Created):
 }
 
 
-[3.4A] Member Self-Registration (Mobile App API)
+[3.4A] Member Register (Mobile App API)
 --------------------------------------------------
 Method:      POST
-Endpoint:    /api/members/register
+Endpoint:    /api/members/register  (also: /api/member/register, /api/members/signup)
 Headers:     Content-Type: application/json or multipart/form-data
-Auth:        Public (or optional Bearer Token to associate authenticated user)
-Note:        Backend automatically sets "created_by": "user", initial status strictly "pending",
-             and idCard.status "inactive". Users cannot elevate status or supply admin fields.
+Auth:        Public (None)
+Description: Creates a User account (role: Member) and a Member entry (status: pending).
+             Returns the member data and authenticates the user with a JWT token (token is last).
 
-Request Body:
+Request Body (Exact fields matching Mobile UI screen + Required Password):
 {
-  "name": "Pooja Sharma",                // (Required) String (min 2 chars)
-  "business": "Sharma Art Jewellers",    // (Required) String (min 2 chars)
-  "mobile": "9825123456",                // (Required) String (min 8 chars)
-  "email": "pooja.sharma@example.com",   // (Required) String (valid email)
-  "city": "Ahmedabad",                   // (Optional) String (default: 'Ahmedabad')
-  "dob": "1994-08-15",                   // (Optional) String
-  "address": "Satellite Road, Ahmedabad",// (Optional) String
-  "pincode": "380015",                   // (Optional) String
-  "businessType": "Retailer",            // (Optional) String (default: 'Retailer')
-  "avatar": "/uploads/profile.png"       // (Optional) String or File upload
+  "fullName": "Pooja Sharma",                 // (Required) String - Full Name (or "name")
+  "businessName": "Sharma Art Jewellers",     // (Required) String - Business Name (or "business")
+  "businessType": "Retailer",                 // (Optional) String - Dropdown (default: 'Retailer')
+  "email": "pooja.sharma@example.com",        // (Required) String - Email Address (used for login)
+  "mobile": "9825123456",                     // (Required) String - Mobile Number (or "phone")
+  "city": "Ahmedabad",                        // (Optional) String - City (default: 'Ahmedabad')
+  "password": "password123",                  // (Required) String - Min 6 chars (strictly required for login)
+  "confirmPassword": "password123"            // (Optional) String - Must match password if provided
 }
+
+Note: The "password" field is STRICTLY REQUIRED. If not sent, the API returns HTTP 400 Bad Request ("Password is required and must be at least 6 characters"). Additional optional fields like "avatar", "address", "pincode", "dob" are also supported.
 
 Response (201 Created):
 {
   "success": true,
-  "status": true,
   "message": "Member registered successfully. Your profile is pending approval.",
   "data": {
     "id": 20,
@@ -722,11 +725,127 @@ Response (201 Created):
     "created_by": "user",
     "createdAt": "05-11-2026 11:25 am",
     "updatedAt": "05-11-2026 11:25 am"
-  }
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 
 
-[3.4B] Get Own Member Profile (Mobile App API)
+[3.4B] Member Login (Mobile App API)
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/members/login  (also: /api/member/login, /api/members/signin)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Public (None)
+Description: Authenticates member by registered email address and password.
+             Returns member profile and JWT token (token is last).
+
+Request Body (Login with Email & Password):
+{
+  "email": "pooja.sharma@example.com",   // (Required) String - Registered Email Address
+  "password": "password123"              // (Required) String - Password
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja Sharma",
+    "business": "Sharma Art Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Satellite Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.png",
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 11:25 am",
+    "updatedAt": "05-11-2026 11:25 am"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+
+[3.4C] Member Forgot Password (Mobile App API)
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/members/forgot-password  (also: /api/members/forget-password)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Public (None)
+Description: Generates 1-hour reset token and dispatches reset email to member.
+
+Request Body:
+{
+  "email": "pooja.sharma@example.com"    // Or "mobile": "9825123456"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "If an account exists with this email, a password reset link will be sent.",
+  "resetToken": "a1b2c3d4e5f6..."
+}
+
+
+[3.4D] Member Reset Password (Mobile App API)
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/members/reset-password  (also: /api/member/reset-password)
+Headers:     Content-Type: application/json or multipart/form-data
+Auth:        Public (with token)
+Description: Resets password using the reset token.
+
+Request Body:
+{
+  "token": "a1b2c3d4e5f6...",
+  "newPassword": "newSecretPassword123",
+  "confirmPassword": "newSecretPassword123",
+  "email": "pooja.sharma@example.com"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Password reset successfully."
+}
+
+
+[3.4E] Member Change Password (Mobile App API)
+--------------------------------------------------
+Method:      POST
+Endpoint:    /api/members/change-password  (also: /api/member/change-password)
+Headers:     Content-Type: application/json or multipart/form-data
+             Authorization: Bearer <token>
+Auth:        Required (Authenticated Member)
+Description: Changes current password for authenticated member.
+
+Request Body:
+{
+  "currentPassword": "password123",
+  "newPassword": "myNewStrongPassword456",
+  "confirmPassword": "myNewStrongPassword456"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Password changed successfully."
+}
+
+
+[3.4F] Get Own Member Profile (Mobile App API)
 --------------------------------------------------
 Method:      GET
 Endpoint:    /api/members/profile
@@ -763,6 +882,74 @@ Response (200 OK):
     "createdAt": "05-11-2026 11:25 am",
     "updatedAt": "05-11-2026 11:25 am"
   }
+}
+
+
+[3.4G] Update Own Member Profile (Mobile App API)
+--------------------------------------------------
+Method:      PATCH or PUT
+Endpoint:    /api/members/profile
+Headers:     Content-Type: application/json or multipart/form-data
+             Authorization: Bearer <token>
+Auth:        Required (Mobile User Authentication)
+Description: Updates personal details and avatar for authenticated member.
+
+Request Body:
+{
+  "name": "Pooja A. Sharma",
+  "business": "Sharma Heritage Jewellers",
+  "city": "Ahmedabad",
+  "address": "Sindhu Bhavan Road, Ahmedabad",
+  "pincode": "380054",
+  "dob": "1994-08-15"
+}
+
+Response (200 OK):
+{
+  "success": true,
+  "status": true,
+  "message": "Member profile updated successfully",
+  "data": {
+    "id": 20,
+    "membershipId": "JBAD170",
+    "name": "Pooja A. Sharma",
+    "business": "Sharma Heritage Jewellers",
+    "mobile": "9825123456",
+    "email": "pooja.sharma@example.com",
+    "city": "Ahmedabad",
+    "address": "Sindhu Bhavan Road, Ahmedabad",
+    "businessType": "Retailer",
+    "joinedOn": "05-11-2026",
+    "avatar": "/uploads/profile.png",
+    "status": "pending",
+    "rejectionReason": "",
+    "idCard": {
+      "cardNumber": "JBAD170",
+      "status": "inactive",
+      "issuedAt": "05-11-2026",
+      "validUntil": null,
+      "qrCode": "https://yourdomain.com/verify/JBAD170"
+    },
+    "created_by": "user",
+    "createdAt": "05-11-2026 11:25 am",
+    "updatedAt": "05-11-2026 11:30 am"
+  }
+}
+
+
+[3.4H] Member Logout (Mobile App API)
+--------------------------------------------------
+Method:      POST  (or GET)
+Endpoint:    /api/members/logout  (also: /api/member/logout, /api/logout)
+Headers:     Authorization: Bearer <token> (optional)
+Auth:        None / Optional
+Description: Revokes token in TokenBlacklist and clears auth cookies.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Logout successful"
+}
 }
 
 
@@ -819,24 +1006,26 @@ Response (200 OK):
 }
 
 
-[3.5] Update Member Status Specifically (Approve / Reject)
+[3.5] Update Member Status (Active / Inactive / Approve / Reject)
 --------------------------------------------------
 Method:      PATCH
 Endpoint:    /api/members/:id/status  (e.g., /api/members/1/status)
 Headers:     Content-Type: application/json or multipart/form-data
-Auth:        None
+Auth:        Bearer Token
 
 Request Body:
 {
-  "status": "approved",                  // (Required) 'pending' | 'approved' | 'rejected'
-  "reason": "Verified trade license"     // (Optional) String (saved if rejected)
+  "status": "active",                    // (Optional) 'active' | 'inactive' | 'pending' | 'approved' | 'rejected'
+  "isActive": true,                      // (Optional) Boolean (true: active, false: inactive)
+  "reason": "Verified trade license"     // (Optional) String (saved if rejected or deactivated)
 }
 
 Response (200 OK):
 {
   "id": 1,
   "name": "Rajesh Mehta",
-  "status": "approved",
+  "isActive": true,
+  "status": "active",
   "rejectionReason": "",
   "createdAt": "23-10-2026 11:11 am",
   "updatedAt": "23-10-2026 11:15 am"

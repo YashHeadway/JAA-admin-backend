@@ -1,10 +1,27 @@
 import { z } from 'zod';
 
 const normalizeStatus = z.preprocess(
-  (val) => (typeof val === 'string' ? val.trim().toLowerCase() : val),
-  z.enum(['pending', 'approved', 'rejected'], {
-    errorMap: () => ({ message: "Status must be 'pending', 'approved', or 'rejected'" }),
+  (val) => {
+    if (typeof val === 'boolean') return val ? 'active' : 'inactive';
+    if (typeof val === 'string') return val.trim().toLowerCase();
+    return val;
+  },
+  z.enum(['active', 'inactive', 'pending', 'approved', 'rejected'], {
+    errorMap: () => ({ message: "Status must be 'active', 'inactive', 'pending', 'approved', or 'rejected'" }),
   })
+);
+
+export const normalizeIsActive = z.preprocess(
+  (val) => {
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'string') {
+      const lower = val.trim().toLowerCase();
+      if (lower === 'true' || lower === 'active' || lower === 'approved') return true;
+      if (lower === 'false' || lower === 'inactive' || lower === 'rejected' || lower === 'pending') return false;
+    }
+    return val;
+  },
+  z.boolean().optional()
 );
 
 export const idCardValidationSchema = z
@@ -26,6 +43,11 @@ export const createMemberSchema = z
     mobile: z.string().trim().min(8, 'Valid mobile number is required').optional(),
     phone: z.string().trim().min(8).optional(),
     email: z.string().trim().email('Valid email address is required'),
+    password: z
+      .string({ message: 'Password is required and must be at least 6 characters' })
+      .trim()
+      .min(6, 'Password is required and must be at least 6 characters'),
+    confirmPassword: z.string().optional(),
     city: z.string().optional().default('Ahmedabad'),
     dob: z.string().optional(),
     address: z.string().optional(),
@@ -33,12 +55,14 @@ export const createMemberSchema = z
     avatar: z.string().nullable().optional(),
     image: z.string().nullable().optional(),
     profilePhoto: z.string().nullable().optional(),
-    status: normalizeStatus.optional().default('approved'),
+    status: normalizeStatus.optional().default('active'),
+    isActive: normalizeIsActive.optional().default(true),
     membershipId: z.string().optional(),
     joinedOn: z.string().optional(),
     idCard: idCardValidationSchema.optional(),
     rejectionReason: z.string().nullable().optional(),
     reason: z.string().nullable().optional(),
+    created_by: z.enum(['admin', 'user']).optional(),
   })
   .passthrough()
   .refine((data) => Boolean(data.name || data.fullName), {
@@ -52,15 +76,29 @@ export const createMemberSchema = z
   .refine((data) => Boolean(data.mobile || data.phone), {
     message: 'Valid mobile number is required',
     path: ['mobile'],
+  })
+  .refine((data) => {
+    if (data.password && data.confirmPassword) {
+      return data.password === data.confirmPassword;
+    }
+    return true;
+  }, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   });
 
 export const updateMemberStatusSchema = z
   .object({
-    status: normalizeStatus,
+    status: normalizeStatus.optional(),
+    isActive: normalizeIsActive.optional(),
     reason: z.string().nullable().optional(),
     rejectionReason: z.string().nullable().optional(),
   })
-  .passthrough();
+  .passthrough()
+  .refine((data) => data.status !== undefined || data.isActive !== undefined, {
+    message: "Either 'status' or 'isActive' must be provided",
+    path: ['status'],
+  });
 
 export const updateMemberSchema = z
   .object({
@@ -78,45 +116,121 @@ export const updateMemberSchema = z
     avatar: z.string().nullable().optional(),
     image: z.string().nullable().optional(),
     profilePhoto: z.string().nullable().optional(),
+    created_by: z.enum(['admin', 'user']).optional(),
     status: normalizeStatus.optional(),
+    isActive: normalizeIsActive.optional(),
     reason: z.string().nullable().optional(),
     rejectionReason: z.string().nullable().optional(),
     membershipId: z.string().optional(),
     joinedOn: z.string().optional(),
     idCard: idCardValidationSchema.optional(),
+    password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+    confirmPassword: z.string().optional(),
   })
-  .passthrough();
+  .passthrough()
+  .refine((data) => {
+    if (data.password && data.confirmPassword) {
+      return data.password === data.confirmPassword;
+    }
+    return true;
+  }, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export const mobileRegisterMemberSchema = z
   .object({
-    name: z.string().trim().min(2, 'Name is required').optional(),
-    fullName: z.string().trim().min(2).optional(),
-    business: z.string().trim().min(2, 'Business name is required').optional(),
-    businessName: z.string().trim().min(2).optional(),
+    fullName: z.string().trim().min(2, 'Full Name is required').optional(),
+    name: z.string().trim().min(2).optional(),
+    businessName: z.string().trim().min(2, 'Business Name is required').optional(),
+    business: z.string().trim().min(2).optional(),
+    businessType: z.string().optional().default('Retailer'),
+    email: z.string().trim().email('Valid email address is required'),
     mobile: z.string().trim().min(8, 'Valid mobile number is required').optional(),
     phone: z.string().trim().min(8).optional(),
-    email: z.string().trim().email('Valid email address is required'),
     city: z.string().optional().default('Ahmedabad'),
+    password: z
+      .string({ message: 'Password is required and must be at least 6 characters' })
+      .trim()
+      .min(6, 'Password is required and must be at least 6 characters'),
+    confirmPassword: z.string().optional(),
     dob: z.string().optional(),
+    dateOfBirth: z.string().optional(),
     address: z.string().optional(),
     pincode: z.string().optional(),
-    businessType: z.string().optional().default('Retailer'),
     avatar: z.string().nullable().optional(),
     image: z.string().nullable().optional(),
     profilePhoto: z.string().nullable().optional(),
+    created_by: z.enum(['admin', 'user']).optional(),
+    status: normalizeStatus.optional().default('pending'),
+    isActive: normalizeIsActive.optional().default(false),
   })
   .passthrough()
-  .refine((data) => Boolean(data.name || data.fullName), {
-    message: 'Name is required',
-    path: ['name'],
+  .refine((data) => Boolean(data.fullName || data.name), {
+    message: 'Full Name is required',
+    path: ['fullName'],
   })
-  .refine((data) => Boolean(data.business || data.businessName), {
-    message: 'Business name is required',
-    path: ['business'],
+  .refine((data) => Boolean(data.businessName || data.business), {
+    message: 'Business Name is required',
+    path: ['businessName'],
   })
   .refine((data) => Boolean(data.mobile || data.phone), {
     message: 'Valid mobile number is required',
     path: ['mobile'],
+  })
+  .refine((data) => {
+    if (data.password && data.confirmPassword) {
+      return data.password === data.confirmPassword;
+    }
+    return true;
+  }, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export const memberLoginSchema = z
+  .object({
+    email: z.string().trim().min(1, 'Email is required').email('Valid email address is required'),
+    password: z.string().min(1, 'Password is required'),
+  })
+  .passthrough();
+
+export const memberForgotPasswordSchema = z
+  .object({
+    email: z.string().trim().optional(),
+    mobile: z.string().trim().optional(),
+    phone: z.string().trim().optional(),
+  })
+  .passthrough()
+  .refine((data) => Boolean(data.email || data.mobile || data.phone), {
+    message: 'Email or mobile number is required',
+    path: ['email'],
+  });
+
+export const memberResetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'Reset token is required'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters'),
+    email: z.string().trim().optional(),
+  })
+  .passthrough()
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'New password and confirm password do not match',
+    path: ['confirmPassword'],
+  });
+
+export const memberChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+    confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters'),
+    email: z.string().trim().optional(),
+  })
+  .passthrough()
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'New password and confirm password do not match',
+    path: ['confirmPassword'],
   });
 
 export const updateMemberProfileSchema = z
@@ -133,6 +247,7 @@ export const updateMemberProfileSchema = z
     avatar: z.string().nullable().optional(),
     image: z.string().nullable().optional(),
     profilePhoto: z.string().nullable().optional(),
+    created_by: z.enum(['admin', 'user']).optional(),
     mobile: z.string().trim().min(8).optional(),
     phone: z.string().trim().min(8).optional(),
     email: z.preprocess(

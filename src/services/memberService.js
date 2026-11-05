@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { Member } from '../models/Member.js';
 import { User } from '../models/User.js';
 import { CommitteeService } from './committeeService.js';
@@ -8,13 +9,26 @@ import { ApiError } from '../utils/apiError.js';
 import { buildIdQuery } from '../utils/queryHelper.js';
 import { MEMBER_STATUS } from '../constants/status.js';
 import { formatDateOnly } from '../utils/dateFormatter.js';
+import { AuthService } from './authService.js';
 
 export class MemberService {
-  static async getMembers({ status = MEMBER_STATUS.ALL, search = '', page = 1, limit = 20 } = {}) {
+  static async getMembers({ status = MEMBER_STATUS.ALL, search = '', page = 1, limit = 20, isActive } = {}) {
     const filter = {};
 
     if (status && status !== MEMBER_STATUS.ALL && status.toLowerCase() !== 'all') {
-      filter.status = status.toLowerCase();
+      const lower = status.toLowerCase();
+      if (lower === 'active' || lower === 'approved') {
+        filter.$or = [{ status: 'active' }, { status: 'approved' }, { isActive: true }];
+      } else if (lower === 'inactive' || lower === 'rejected') {
+        filter.$or = [{ status: 'inactive' }, { status: 'rejected' }, { isActive: false }];
+      } else {
+        filter.status = lower;
+      }
+    }
+
+    if (isActive !== undefined && isActive !== null && isActive !== '' && isActive !== 'all') {
+      const activeBool = typeof isActive === 'boolean' ? isActive : (String(isActive).toLowerCase() === 'true' || String(isActive).toLowerCase() === 'active');
+      filter.isActive = activeBool;
     }
 
     if (search && search.trim()) {
@@ -30,13 +44,15 @@ export class MemberService {
 
     const { skip, limit: parsedLimit, page: parsedPage } = getPagination({ page, limit }, 20);
 
-    const [items, total, allCount, pendingCount, approvedCount, rejectedCount] = await Promise.all([
+    const [items, total, allCount, pendingCount, approvedCount, rejectedCount, activeCount, inactiveCount] = await Promise.all([
       Member.find(filter).sort({ id: -1 }).skip(skip).limit(parsedLimit),
       Member.countDocuments(filter),
       Member.countDocuments({}),
       Member.countDocuments({ status: 'pending' }),
-      Member.countDocuments({ status: 'approved' }),
-      Member.countDocuments({ status: 'rejected' }),
+      Member.countDocuments({ status: { $in: ['approved', 'active'] } }),
+      Member.countDocuments({ status: { $in: ['rejected', 'inactive'] } }),
+      Member.countDocuments({ $or: [{ status: 'active' }, { status: 'approved' }, { isActive: true }] }),
+      Member.countDocuments({ $or: [{ status: 'inactive' }, { status: 'rejected' }, { isActive: false }] }),
     ]);
 
     const counts = {
@@ -44,6 +60,8 @@ export class MemberService {
       pending: pendingCount,
       approved: approvedCount,
       rejected: rejectedCount,
+      active: activeCount,
+      inactive: inactiveCount,
     };
 
     const pagination = formatPaginationMeta(total, parsedPage, parsedLimit);
@@ -56,14 +74,16 @@ export class MemberService {
   }
 
   static async getStats() {
-    const [all, pending, approved, rejected] = await Promise.all([
+    const [all, pending, approved, rejected, active, inactive] = await Promise.all([
       Member.countDocuments({}),
       Member.countDocuments({ status: 'pending' }),
-      Member.countDocuments({ status: 'approved' }),
-      Member.countDocuments({ status: 'rejected' }),
+      Member.countDocuments({ status: { $in: ['approved', 'active'] } }),
+      Member.countDocuments({ status: { $in: ['rejected', 'inactive'] } }),
+      Member.countDocuments({ $or: [{ status: 'active' }, { status: 'approved' }, { isActive: true }] }),
+      Member.countDocuments({ $or: [{ status: 'inactive' }, { status: 'rejected' }, { isActive: false }] }),
     ]);
 
-    return { all, pending, approved, rejected };
+    return { all, pending, approved, rejected, active, inactive };
   }
 
   static async getMemberById(id) {
@@ -91,13 +111,40 @@ export class MemberService {
     };
   }
 
-  static async updateStatus(id, status, reason = '') {
-    const cardStatus = status === 'rejected' ? 'inactive' : 'active';
+  static async updateStatus(id, rawStatus, reason = '') {
+    const statusLower = typeof rawStatus === 'string' ? rawStatus.trim().toLowerCase() : '';
+    let finalStatus = 'active';
+    let isActive = true;
+
+    if (statusLower === 'approved') {
+      finalStatus = 'approved';
+      isActive = true;
+    } else if (statusLower === 'active') {
+      finalStatus = 'active';
+      isActive = true;
+    } else if (statusLower === 'rejected') {
+      finalStatus = 'rejected';
+      isActive = false;
+    } else if (statusLower === 'inactive') {
+      finalStatus = 'inactive';
+      isActive = false;
+    } else if (statusLower === 'pending') {
+      finalStatus = 'pending';
+      isActive = false;
+    } else {
+      finalStatus = statusLower || 'active';
+      isActive = finalStatus === 'active' || finalStatus === 'approved';
+    }
+
+    const cardStatus = isActive ? 'active' : 'inactive';
+    const isInactive = !isActive;
+
     const updated = await Member.findOneAndUpdate(
       buildIdQuery(id),
       {
-        status,
-        rejectionReason: status === 'rejected' ? reason : (reason || ''),
+        status: finalStatus,
+        isActive,
+        rejectionReason: isInactive ? reason : (reason || ''),
         'idCard.status': cardStatus,
       },
       { returnDocument: 'after' }
@@ -107,8 +154,23 @@ export class MemberService {
       throw ApiError.notFound(`Member with ID '${id}' was not found`);
     }
 
+    // Sync linked User account status & isActive
+    try {
+      let memberUser = updated.createdByUser ? await User.findById(updated.createdByUser) : null;
+      if (!memberUser && updated.email) {
+        memberUser = await User.findOne({ email: updated.email.trim().toLowerCase() });
+      }
+      if (memberUser) {
+        memberUser.status = isActive ? 'active' : 'inactive';
+        memberUser.isActive = isActive;
+        await memberUser.save();
+      }
+    } catch (uErr) {
+      console.error('Failed to sync linked user status:', uErr);
+    }
+
     // If member status changed to rejected or inactive, remove from all committee positions
-    if (status === 'rejected' || status === 'inactive') {
+    if (isInactive) {
       try {
         await CommitteeService.removeMemberFromAllCommittees(updated.id);
       } catch (err) {
@@ -136,9 +198,39 @@ export class MemberService {
     if (cleanUpdates.phone && !cleanUpdates.mobile) {
       cleanUpdates.mobile = cleanUpdates.phone;
     }
-    if (cleanUpdates.status && typeof cleanUpdates.status === 'string') {
-      cleanUpdates.status = cleanUpdates.status.toLowerCase();
-      cleanUpdates['idCard.status'] = cleanUpdates.status === 'rejected' ? 'inactive' : 'active';
+    if (cleanUpdates.status !== undefined || cleanUpdates.isActive !== undefined) {
+      let finalStatus = 'active';
+      let isActive = true;
+
+      if (cleanUpdates.status !== undefined) {
+        const raw = String(cleanUpdates.status).trim().toLowerCase();
+        if (raw === 'approved' || raw === 'active') {
+          finalStatus = raw;
+          isActive = true;
+        } else if (raw === 'rejected' || raw === 'inactive') {
+          finalStatus = raw;
+          isActive = false;
+        } else if (raw === 'pending') {
+          finalStatus = 'pending';
+          isActive = false;
+        } else {
+          finalStatus = raw;
+          isActive = true;
+        }
+      }
+
+      if (cleanUpdates.isActive !== undefined) {
+        isActive = typeof cleanUpdates.isActive === 'boolean'
+          ? cleanUpdates.isActive
+          : (String(cleanUpdates.isActive).toLowerCase() === 'true' || String(cleanUpdates.isActive).toLowerCase() === 'active');
+        if (!isActive && (finalStatus === 'active' || !cleanUpdates.status)) {
+          finalStatus = 'inactive';
+        }
+      }
+
+      cleanUpdates.status = finalStatus;
+      cleanUpdates.isActive = isActive;
+      cleanUpdates['idCard.status'] = isActive ? 'active' : 'inactive';
     }
     if (cleanUpdates.image && !cleanUpdates.avatar) {
       cleanUpdates.avatar = cleanUpdates.image;
@@ -149,6 +241,26 @@ export class MemberService {
       cleanUpdates['idCard.cardNumber'] = cleanUpdates.membershipId;
       cleanUpdates['idCard.qrCode'] = `https://yourdomain.com/verify/${cleanUpdates.membershipId}`;
     }
+
+    if (cleanUpdates.password && typeof cleanUpdates.password === 'string' && cleanUpdates.password.trim().length >= 6) {
+      const pwd = cleanUpdates.password.trim();
+      const existing = await Member.findOne(buildIdQuery(id));
+      if (existing) {
+        let memberUser = existing.createdByUser ? await User.findById(existing.createdByUser) : null;
+        if (!memberUser && existing.email) {
+          memberUser = await User.findOne({ email: existing.email.trim().toLowerCase() });
+        }
+        if (memberUser) {
+          memberUser.password = pwd;
+          await memberUser.save();
+        }
+        const salt = await bcrypt.genSalt(10);
+        cleanUpdates.password = await bcrypt.hash(pwd, salt);
+      }
+    } else {
+      delete cleanUpdates.password;
+    }
+    delete cleanUpdates.confirmPassword;
 
     const updated = await Member.findOneAndUpdate(
       buildIdQuery(id),
@@ -188,14 +300,44 @@ export class MemberService {
     return deleted;
   }
 
-  static async createMember(memberData, { creator = 'admin', userId = null } = {}) {
-    const safeCreator = (creator === 'user') ? 'user' : 'admin';
+  static async createMember(memberData, { creator = null, userId = null, role = null, user = null } = {}) {
+    // Determine safeCreator:
+    // If request body explicitly says 'user' -> 'user'
+    // If request body says 'admin' -> only allowed if caller is admin
+    // If caller is admin (e.g. from /admin/members or logged in admin) -> 'admin'
+    // Otherwise -> 'user'
+    const bodyCreatedBy = memberData.created_by ? String(memberData.created_by).trim().toLowerCase() : null;
+    const roleToCheck = (role || user?.role || '').trim().toLowerCase();
+    const isAdminUser = roleToCheck === 'admin' || roleToCheck === 'super admin';
+
+    let safeCreator = 'user';
+    if (bodyCreatedBy === 'user') {
+      safeCreator = 'user';
+    } else if (bodyCreatedBy === 'admin') {
+      safeCreator = isAdminUser || creator === 'admin' ? 'admin' : 'user';
+    } else if (creator === 'user') {
+      safeCreator = 'user';
+    } else if (creator === 'admin' || isAdminUser) {
+      safeCreator = 'admin';
+    } else {
+      safeCreator = 'user';
+    }
 
     const name = (memberData.name || memberData.fullName || '').trim();
     const business = (memberData.business || memberData.businessName || '').trim();
     const mobile = (memberData.mobile || memberData.phone || '').trim();
     const email = (memberData.email || '').trim().toLowerCase();
     const avatar = memberData.avatar || memberData.image || memberData.profilePhoto || null;
+
+    // Password for member's login account (Strictly Required)
+    const rawPassword = memberData.password ? String(memberData.password).trim() : '';
+    if (!rawPassword) {
+      throw ApiError.badRequest('Password is required and must be at least 6 characters');
+    }
+    if (rawPassword.length < 6) {
+      throw ApiError.badRequest('Password must be at least 6 characters');
+    }
+    const passwordToSet = rawPassword;
 
     // Validate duplicates for mobile and email
     if (mobile) {
@@ -212,40 +354,83 @@ export class MemberService {
       }
     }
 
-    // Resolve user ObjectId if provided
-    let userObjectId = null;
-    if (userId) {
-      if (mongoose.Types.ObjectId.isValid(userId)) {
-        userObjectId = userId;
-      } else {
-        const userDoc = await User.findOne({ id: userId });
-        if (userDoc) {
-          userObjectId = userDoc._id;
-        }
-      }
-    }
-
-    // Determine status & card status based on creator
+    // Determine status, isActive & card status based on creator
     let status;
+    let isActive;
     let cardStatus;
     let rejectionReason = '';
 
     if (safeCreator === 'user') {
       // Mobile user registration is strictly pending
       status = 'pending';
+      isActive = false;
       cardStatus = 'inactive';
       rejectionReason = '';
     } else {
-      // Admin creation defaults to approved unless explicitly set to rejected
+      // Admin creation
       let rawStatus = memberData.status;
       if (typeof rawStatus === 'string') {
         rawStatus = rawStatus.trim().toLowerCase();
       }
-      status = (rawStatus === 'rejected') ? 'rejected' : 'approved';
-      cardStatus = status === 'rejected' ? 'inactive' : 'active';
-      rejectionReason = memberData.rejectionReason !== undefined
-        ? memberData.rejectionReason
-        : (memberData.reason !== undefined ? memberData.reason : '');
+      const isExplicitInactive = memberData.isActive === false || memberData.isActive === 'false' || rawStatus === 'inactive' || rawStatus === 'rejected';
+      if (isExplicitInactive) {
+        status = 'inactive';
+        isActive = false;
+        cardStatus = 'inactive';
+        rejectionReason = memberData.rejectionReason !== undefined
+          ? memberData.rejectionReason
+          : (memberData.reason !== undefined ? memberData.reason : '');
+      } else {
+        status = rawStatus && rawStatus !== 'inactive' && rawStatus !== 'rejected' ? rawStatus : 'active';
+        isActive = true;
+        cardStatus = 'active';
+        rejectionReason = '';
+      }
+    }
+
+    // Automatically create or link User account with role 'Member' and password
+    // so this member can log into the mobile app with their email and password
+    let userObjectId = null;
+    let memberUser = null;
+    if (email) {
+      memberUser = await User.findOne({ email });
+    }
+    if (!memberUser && mobile) {
+      memberUser = await User.findOne({ mobile });
+    }
+
+    if (memberUser) {
+      if (memberData.password && memberData.password.trim()) {
+        memberUser.password = memberData.password.trim();
+        await memberUser.save();
+      }
+      userObjectId = memberUser._id;
+    } else {
+      let newUserId;
+      try {
+        newUserId = await getNextSequence('users');
+      } catch {
+        const maxUser = await User.findOne().sort({ id: -1 });
+        newUserId = maxUser && maxUser.id ? maxUser.id + 1 : 1;
+      }
+
+      memberUser = await User.create({
+        id: newUserId,
+        name: name || memberData.name || 'Member',
+        fullName: name || memberData.name || 'Member',
+        email,
+        mobile,
+        password: passwordToSet,
+        role: 'Member',
+        dob: memberData.dob || memberData.dateOfBirth || '',
+        address: memberData.address || '',
+        city: memberData.city || 'Ahmedabad',
+        pincode: memberData.pincode || '380009',
+        avatar: avatar || null,
+        isActive,
+        status: status === 'inactive' ? 'inactive' : (status === 'pending' ? 'pending' : 'active'),
+      });
+      userObjectId = memberUser._id;
     }
 
     let id = await getNextSequence('members');
@@ -261,9 +446,12 @@ export class MemberService {
       delete cleanData.id;
       delete cleanData.created_by;
       delete cleanData.createdByUser;
+      delete cleanData.password;
+      delete cleanData.confirmPassword;
+      delete cleanData.status;
+      delete cleanData.isActive;
 
       if (safeCreator === 'user') {
-        delete cleanData.status;
         delete cleanData.membershipId;
         delete cleanData.idCard;
         delete cleanData.rejectionReason;
@@ -278,10 +466,12 @@ export class MemberService {
         business: business || memberData.business,
         mobile: mobile || memberData.mobile,
         email: email || memberData.email,
+        password: passwordToSet,
         avatar,
         joinedOn: joinedDate,
+        isActive,
         status,
-        rejectionReason: status === 'rejected' ? rejectionReason : '',
+        rejectionReason: status === 'inactive' ? rejectionReason : '',
         created_by: safeCreator,
         createdByUser: userObjectId,
         idCard: {
@@ -398,6 +588,18 @@ export class MemberService {
       cleanUpdates.email = newEmail;
     }
 
+    // Password update for member's login account
+    if (updates.password && typeof updates.password === 'string' && updates.password.trim().length >= 6) {
+      let memberUser = member.createdByUser ? await User.findById(member.createdByUser) : null;
+      if (!memberUser && member.email) {
+        memberUser = await User.findOne({ email: member.email.trim().toLowerCase() });
+      }
+      if (memberUser) {
+        memberUser.password = updates.password.trim();
+        await memberUser.save();
+      }
+    }
+
     const updated = await Member.findOneAndUpdate(
       { id: member.id },
       cleanUpdates,
@@ -421,7 +623,7 @@ export class MemberService {
     return result;
   }
 
-  static async bulkCreateMembers(membersList) {
+  static async bulkCreateMembers(membersList, { creator = 'admin', user = null } = {}) {
     if (!Array.isArray(membersList) || membersList.length === 0) {
       throw ApiError.badRequest('No member records provided for import');
     }
@@ -432,7 +634,8 @@ export class MemberService {
     for (let i = 0; i < membersList.length; i++) {
       const row = membersList[i];
       try {
-        const created = await this.createMember(row, { creator: 'admin' });
+        const rowPassword = (row.password && String(row.password).trim()) || 'Member@123';
+        const created = await this.createMember({ ...row, password: rowPassword }, { creator, user, role: user?.role });
         createdMembers.push(created);
       } catch (err) {
         errors.push({
@@ -451,5 +654,223 @@ export class MemberService {
       errors: errors.length > 0 ? errors : undefined,
       data: createdMembers,
     };
+  }
+
+  /**
+   * Register a new member from mobile app (creates User account with role 'Member' and Member entry).
+   */
+  static async registerMobileMember(data, file = null, { creator = 'user', user = null } = {}) {
+    const name = (data.name || data.fullName || '').trim();
+    const business = (data.business || data.businessName || 'Business').trim();
+    const mobile = (data.mobile || data.phone || '').trim();
+    const email = (data.email || '').trim().toLowerCase();
+    const rawPassword = data.password ? String(data.password).trim() : '';
+
+    if (!email) throw ApiError.badRequest('Valid email address is required');
+    if (!mobile) throw ApiError.badRequest('Valid mobile number is required');
+    if (!name) throw ApiError.badRequest('Name is required');
+    if (!rawPassword) throw ApiError.badRequest('Password is required and must be at least 6 characters');
+    if (rawPassword.length < 6) throw ApiError.badRequest('Password must be at least 6 characters');
+    const password = rawPassword;
+    const avatar = file
+      ? (file.filename ? `/uploads/${file.filename}` : (file.path || file.url))
+      : (data.avatar || data.image || data.profilePhoto || null);
+
+    // Check existing email or mobile in User and Member
+    const existingUser = await User.findOne({
+      $or: [{ email }, { mobile }],
+    });
+    if (existingUser) {
+      if (existingUser.email === email) {
+        throw ApiError.conflict(`An account with email '${email}' already exists`);
+      }
+      throw ApiError.conflict(`An account with mobile number '${mobile}' already exists`);
+    }
+
+    const existingMember = await Member.findOne({
+      $or: [{ email }, { mobile }],
+    });
+    if (existingMember) {
+      if (existingMember.email === email) {
+        throw ApiError.conflict(`A member with email '${email}' already exists`);
+      }
+      throw ApiError.conflict(`A member with mobile number '${mobile}' already exists`);
+    }
+
+    // 1. Create User account with role 'Member'
+    let userId;
+    try {
+      userId = await getNextSequence('users');
+    } catch {
+      const maxUser = await User.findOne().sort({ id: -1 });
+      userId = maxUser && maxUser.id ? maxUser.id + 1 : 1;
+    }
+
+    const newUser = await User.create({
+      id: userId,
+      name,
+      fullName: name,
+      email,
+      mobile,
+      password,
+      role: 'Member',
+      dob: data.dob || data.dateOfBirth || '',
+      dateOfBirth: data.dob || data.dateOfBirth || '',
+      gender: data.gender || 'Male',
+      address: data.address || '',
+      city: data.city || 'Ahmedabad',
+      pincode: data.pincode || '380009',
+      avatar: avatar || null,
+      profilePhoto: avatar || null,
+      image: avatar || null,
+      isActive: false,
+      status: 'pending',
+    });
+
+    // 2. Create Member entry (Mobile registration is strictly 'user' and 'pending')
+    const createdMember = await this.createMember(
+      {
+        ...data,
+        name,
+        business,
+        mobile,
+        email,
+        password,
+        avatar,
+        created_by: 'user',
+        status: 'pending',
+        isActive: false,
+      },
+      { creator: 'user', userId: newUser._id, role: 'Member', user: newUser }
+    );
+
+    const tokens = AuthService.generateTokens(newUser);
+    const memberData = createdMember.toObject ? createdMember.toObject() : { ...createdMember };
+    delete memberData.password;
+
+    return {
+      user: newUser,
+      member: memberData,
+      token: tokens.token,
+    };
+  }
+
+  /**
+   * Authenticate mobile member by email and password.
+   */
+  static async loginMobileMember({ email, mobile, phone, username, password }) {
+    if (!password) {
+      throw ApiError.badRequest('Password is required');
+    }
+
+    const identifier = (email || mobile || phone || username || '').trim();
+    if (!identifier) {
+      throw ApiError.badRequest('Email is required');
+    }
+
+    const normalizedEmail = identifier.toLowerCase();
+
+    // 1. Find User by email (supports mobile fallback)
+    let user = await User.findOne({
+      $or: [{ email: normalizedEmail }, { mobile: identifier }],
+    });
+
+    // 2. Fallback: check if member exists and find linked User
+    if (!user) {
+      const member = await Member.findOne({
+        $or: [{ email: normalizedEmail }, { mobile: identifier }],
+      });
+      if (member && member.createdByUser) {
+        user = await User.findById(member.createdByUser);
+      }
+    }
+
+    if (!user) {
+      throw ApiError.unauthorized('Invalid email or password');
+    }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw ApiError.unauthorized('Invalid email or password');
+    }
+
+    // 3. Find corresponding member profile
+    const memberDoc = await this.findMemberForUser(user);
+    const memberData = memberDoc
+      ? (memberDoc.toObject ? memberDoc.toObject() : { ...memberDoc })
+      : {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          mobile: user.mobile,
+          role: user.role || 'Member',
+          status: user.status || 'approved',
+          city: user.city || 'Ahmedabad',
+          avatar: user.avatar || user.image || null,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+
+    delete memberData.password;
+
+    const tokens = AuthService.generateTokens(user);
+
+    return {
+      user,
+      member: memberData,
+      token: tokens.token,
+    };
+  }
+
+  /**
+   * Member forgot password request (sends reset email).
+   */
+  static async forgotMemberPassword({ email, mobile, phone }) {
+    let targetEmail = (email || '').trim().toLowerCase();
+
+    if (!targetEmail) {
+      const mob = (mobile || phone || '').trim();
+      if (!mob) {
+        throw ApiError.badRequest('Email or mobile number is required');
+      }
+      const user = await User.findOne({ mobile: mob });
+      if (user && user.email) {
+        targetEmail = user.email;
+      } else {
+        const mem = await Member.findOne({ mobile: mob });
+        if (mem && mem.email) {
+          targetEmail = mem.email;
+        }
+      }
+    }
+
+    if (!targetEmail) {
+      return {
+        success: true,
+        message: 'If an account exists with this email or mobile, a password reset link will be sent.',
+      };
+    }
+
+    return await AuthService.forgotPassword(targetEmail);
+  }
+
+  /**
+   * Member reset password using reset token.
+   */
+  static async resetMemberPassword({ token, newPassword, confirmPassword, email }) {
+    return await AuthService.resetPassword({ token, newPassword, confirmPassword, email });
+  }
+
+  /**
+   * Member change password for authenticated user.
+   */
+  static async changeMemberPassword({ userId, email, currentPassword, newPassword, confirmPassword }) {
+    return await AuthService.changePassword({
+      userId,
+      email,
+      currentPassword,
+      newPassword,
+      confirmNewPassword: confirmPassword,
+    });
   }
 }
