@@ -18,9 +18,13 @@ export class MemberService {
     if (status && status !== MEMBER_STATUS.ALL && status.toLowerCase() !== 'all') {
       const lower = status.toLowerCase();
       if (lower === 'active' || lower === 'approved') {
-        filter.$or = [{ status: 'active' }, { status: 'approved' }, { isActive: true }];
-      } else if (lower === 'inactive' || lower === 'rejected') {
-        filter.$or = [{ status: 'inactive' }, { status: 'rejected' }, { isActive: false }];
+        filter.status = { $in: ['approved', 'active', 'inactive'] };
+      } else if (lower === 'rejected') {
+        filter.status = 'rejected';
+      } else if (lower === 'pending') {
+        filter.status = 'pending';
+      } else if (lower === 'inactive') {
+        filter.$or = [{ status: 'inactive' }, { isActive: false }];
       } else {
         filter.status = lower;
       }
@@ -49,10 +53,10 @@ export class MemberService {
       Member.countDocuments(filter),
       Member.countDocuments({}),
       Member.countDocuments({ status: 'pending' }),
-      Member.countDocuments({ status: { $in: ['approved', 'active'] } }),
-      Member.countDocuments({ status: { $in: ['rejected', 'inactive'] } }),
-      Member.countDocuments({ $or: [{ status: 'active' }, { status: 'approved' }, { isActive: true }] }),
-      Member.countDocuments({ $or: [{ status: 'inactive' }, { status: 'rejected' }, { isActive: false }] }),
+      Member.countDocuments({ status: { $in: ['approved', 'active', 'inactive'] } }),
+      Member.countDocuments({ status: 'rejected' }),
+      Member.countDocuments({ isActive: true, status: { $in: ['approved', 'active', 'inactive'] } }),
+      Member.countDocuments({ isActive: false, status: { $in: ['approved', 'active', 'inactive'] } }),
     ]);
 
     const counts = {
@@ -77,10 +81,10 @@ export class MemberService {
     const [all, pending, approved, rejected, active, inactive] = await Promise.all([
       Member.countDocuments({}),
       Member.countDocuments({ status: 'pending' }),
-      Member.countDocuments({ status: { $in: ['approved', 'active'] } }),
-      Member.countDocuments({ status: { $in: ['rejected', 'inactive'] } }),
-      Member.countDocuments({ $or: [{ status: 'active' }, { status: 'approved' }, { isActive: true }] }),
-      Member.countDocuments({ $or: [{ status: 'inactive' }, { status: 'rejected' }, { isActive: false }] }),
+      Member.countDocuments({ status: { $in: ['approved', 'active', 'inactive'] } }),
+      Member.countDocuments({ status: 'rejected' }),
+      Member.countDocuments({ isActive: true, status: { $in: ['approved', 'active', 'inactive'] } }),
+      Member.countDocuments({ isActive: false, status: { $in: ['approved', 'active', 'inactive'] } }),
     ]);
 
     return { all, pending, approved, rejected, active, inactive };
@@ -198,37 +202,34 @@ export class MemberService {
     if (cleanUpdates.phone && !cleanUpdates.mobile) {
       cleanUpdates.mobile = cleanUpdates.phone;
     }
-    if (cleanUpdates.status !== undefined || cleanUpdates.isActive !== undefined) {
-      let finalStatus = 'active';
-      let isActive = true;
-
-      if (cleanUpdates.status !== undefined) {
-        const raw = String(cleanUpdates.status).trim().toLowerCase();
-        if (raw === 'approved' || raw === 'active') {
-          finalStatus = raw;
-          isActive = true;
-        } else if (raw === 'rejected' || raw === 'inactive') {
-          finalStatus = raw;
-          isActive = false;
-        } else if (raw === 'pending') {
-          finalStatus = 'pending';
-          isActive = false;
-        } else {
-          finalStatus = raw;
-          isActive = true;
-        }
+    if (cleanUpdates.mobile) {
+      cleanUpdates.mobile = String(cleanUpdates.mobile).trim();
+      if (!/^\d{10}$/.test(cleanUpdates.mobile)) {
+        throw ApiError.badRequest('Mobile number must be a valid 10-digit number');
       }
-
-      if (cleanUpdates.isActive !== undefined) {
-        isActive = typeof cleanUpdates.isActive === 'boolean'
-          ? cleanUpdates.isActive
-          : (String(cleanUpdates.isActive).toLowerCase() === 'true' || String(cleanUpdates.isActive).toLowerCase() === 'active');
-        if (!isActive && (finalStatus === 'active' || !cleanUpdates.status)) {
-          finalStatus = 'inactive';
-        }
+    }
+    if (cleanUpdates.status !== undefined) {
+      const raw = String(cleanUpdates.status).trim().toLowerCase();
+      let finalStatus = 'approved';
+      if (raw === 'approved' || raw === 'active') {
+        finalStatus = 'approved';
+      } else if (raw === 'rejected') {
+        finalStatus = 'rejected';
+      } else if (raw === 'pending') {
+        finalStatus = 'pending';
+      } else if (raw === 'inactive') {
+        finalStatus = 'approved';
+        cleanUpdates.isActive = false;
+      } else {
+        finalStatus = raw;
       }
-
       cleanUpdates.status = finalStatus;
+    }
+
+    if (cleanUpdates.isActive !== undefined) {
+      const isActive = typeof cleanUpdates.isActive === 'boolean'
+        ? cleanUpdates.isActive
+        : (String(cleanUpdates.isActive).toLowerCase() === 'true' || String(cleanUpdates.isActive).toLowerCase() === 'active');
       cleanUpdates.isActive = isActive;
       cleanUpdates['idCard.status'] = isActive ? 'active' : 'inactive';
     }
@@ -242,9 +243,13 @@ export class MemberService {
       cleanUpdates['idCard.qrCode'] = `https://yourdomain.com/verify/${cleanUpdates.membershipId}`;
     }
 
+    const existing = await Member.findOne(buildIdQuery(id));
+    if (existing && existing.status === 'inactive' && cleanUpdates.status === undefined) {
+      cleanUpdates.status = 'approved';
+    }
+
     if (cleanUpdates.password && typeof cleanUpdates.password === 'string' && cleanUpdates.password.trim().length >= 6) {
       const pwd = cleanUpdates.password.trim();
-      const existing = await Member.findOne(buildIdQuery(id));
       if (existing) {
         let memberUser = existing.createdByUser ? await User.findById(existing.createdByUser) : null;
         if (!memberUser && existing.email) {
@@ -329,6 +334,13 @@ export class MemberService {
     const email = (memberData.email || '').trim().toLowerCase();
     const avatar = memberData.avatar || memberData.image || memberData.profilePhoto || null;
 
+    if (!mobile) {
+      throw ApiError.badRequest('Mobile number is required and must be a valid 10-digit number');
+    }
+    if (!/^\d{10}$/.test(mobile)) {
+      throw ApiError.badRequest('Mobile number must be a valid 10-digit number');
+    }
+
     // Password for member's login account (Strictly Required)
     const rawPassword = memberData.password ? String(memberData.password).trim() : '';
     if (!rawPassword) {
@@ -374,14 +386,14 @@ export class MemberService {
       }
       const isExplicitInactive = memberData.isActive === false || memberData.isActive === 'false' || rawStatus === 'inactive' || rawStatus === 'rejected';
       if (isExplicitInactive) {
-        status = 'inactive';
+        status = rawStatus === 'rejected' ? 'rejected' : 'approved';
         isActive = false;
         cardStatus = 'inactive';
         rejectionReason = memberData.rejectionReason !== undefined
           ? memberData.rejectionReason
           : (memberData.reason !== undefined ? memberData.reason : '');
       } else {
-        status = rawStatus && rawStatus !== 'inactive' && rawStatus !== 'rejected' ? rawStatus : 'active';
+        status = rawStatus && rawStatus !== 'inactive' && rawStatus !== 'rejected' ? (rawStatus === 'active' ? 'approved' : rawStatus) : 'approved';
         isActive = true;
         cardStatus = 'active';
         rejectionReason = '';
@@ -570,12 +582,17 @@ export class MemberService {
 
     // Mobile update with uniqueness check
     const newMobile = (updates.mobile || updates.phone || '').trim();
-    if (newMobile && newMobile !== member.mobile) {
-      const existingMobile = await Member.findOne({ mobile: newMobile, id: { $ne: member.id } });
-      if (existingMobile) {
-        throw ApiError.conflict(`Mobile number '${newMobile}' is already in use by another member`);
+    if (newMobile) {
+      if (!/^\d{10}$/.test(newMobile)) {
+        throw ApiError.badRequest('Mobile number must be a valid 10-digit number');
       }
-      cleanUpdates.mobile = newMobile;
+      if (newMobile !== member.mobile) {
+        const existingMobile = await Member.findOne({ mobile: newMobile, id: { $ne: member.id } });
+        if (existingMobile) {
+          throw ApiError.conflict(`Mobile number '${newMobile}' is already in use by another member`);
+        }
+        cleanUpdates.mobile = newMobile;
+      }
     }
 
     // Email update with uniqueness check
@@ -667,7 +684,8 @@ export class MemberService {
     const rawPassword = data.password ? String(data.password).trim() : '';
 
     if (!email) throw ApiError.badRequest('Valid email address is required');
-    if (!mobile) throw ApiError.badRequest('Valid mobile number is required');
+    if (!mobile) throw ApiError.badRequest('Mobile number is required and must be a valid 10-digit number');
+    if (!/^\d{10}$/.test(mobile)) throw ApiError.badRequest('Mobile number must be a valid 10-digit number');
     if (!name) throw ApiError.badRequest('Name is required');
     if (!rawPassword) throw ApiError.badRequest('Password is required and must be at least 6 characters');
     if (rawPassword.length < 6) throw ApiError.badRequest('Password must be at least 6 characters');

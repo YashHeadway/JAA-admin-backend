@@ -232,7 +232,7 @@ export const authenticateOptional = async (req, res, next) => {
 };
 
 export const authorize = (...allowedRoles) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.user) {
       return next(ApiError.unauthorized(UNAUTHENTICATED_MESSAGE));
     }
@@ -245,6 +245,21 @@ export const authorize = (...allowedRoles) => {
 
     if (!isAllowed) {
       return next(ApiError.forbidden('Access denied'));
+    }
+
+    const isAdminCheck = allowedRoles.some((r) => {
+      const lower = r.trim().toLowerCase();
+      return lower === 'admin' || lower === 'super admin';
+    });
+
+    if (isAdminCheck && req.user.email && mongoose.connection?.readyState === 1) {
+      try {
+        const { Member } = await import('../models/Member.js');
+        const member = await Member.findOne({ email: String(req.user.email).trim().toLowerCase() });
+        if (member) {
+          return next(ApiError.forbidden('Access denied: Member accounts cannot access admin routes'));
+        }
+      } catch (_) {}
     }
 
     next();
@@ -320,14 +335,26 @@ export const protectAdmin = async (req, res, next) => {
     }
 
     // Role check: verify Admin / Super Admin
-    if (decoded.role) {
-      const role = String(decoded.role).trim().toLowerCase();
-      if (role !== 'admin' && role !== 'super admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
+    const role = String(decoded.role || '').trim().toLowerCase();
+    if (role !== 'admin' && role !== 'super admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Admin privileges required',
+      });
+    }
+
+    // Verify user is not a member (whether created by admin or user)
+    if (decoded.email && mongoose.connection?.readyState === 1) {
+      try {
+        const { Member } = await import('../models/Member.js');
+        const member = await Member.findOne({ email: String(decoded.email).trim().toLowerCase() });
+        if (member) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: Member accounts cannot access admin routes',
+          });
+        }
+      } catch (_) {}
     }
 
     req.admin = decoded;

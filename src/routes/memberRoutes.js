@@ -104,6 +104,11 @@ const ensureAdminAccess = (req, res, next) => {
   if (isExplicitAdminRoute) {
     return protectAdmin(req, res, next);
   }
+  // If a token is provided on /members, strictly enforce admin privileges
+  const token = req.cookies?.token || req.headers?.authorization;
+  if (token) {
+    return protectAdmin(req, res, next);
+  }
   return authenticateOptional(req, res, next);
 };
 

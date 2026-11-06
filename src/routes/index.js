@@ -13,7 +13,7 @@ import uploadRoutes from './uploadRoutes.js';
 import messageRoutes from './messageRoutes.js';
 import adminProfileRoutes from './adminProfileRoutes.js';
 import adminRoutes from './admin.routes.js';
-import { authenticate } from '../middlewares/authMiddleware.js';
+import { authenticate, protectAdmin } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -94,6 +94,29 @@ router.use((req, res, next) => {
     return next();
   }
   return authenticate(req, res, next);
+});
+
+/**
+ * STRICT ADMIN ROUTE GUARD:
+ * Protects all /admin/* endpoints so that ONLY administrators can access them.
+ * Users created with created_by: 'user' or role 'Member' are strictly forbidden from /admin routes.
+ */
+router.use((req, res, next) => {
+  const rawPath = (req.path || '').toLowerCase();
+  const rawUrl = (req.originalUrl || req.url || '').split('?')[0].toLowerCase();
+  const cleanPath = rawPath.replace(/\/+$/, '');
+  const cleanUrl = rawUrl.replace(/\/+$/, '');
+
+  // Root discovery /api/admin is public
+  if (cleanPath === '/admin' || cleanUrl === '/api/admin') {
+    return next();
+  }
+
+  const isAdminRoute = cleanPath.startsWith('/admin') || cleanUrl.includes('/admin/');
+  if (isAdminRoute && !isPublicRoute(req)) {
+    return protectAdmin(req, res, next);
+  }
+  next();
 });
 
 // Version 1 API routes

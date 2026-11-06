@@ -79,13 +79,13 @@ Request Body (Exact fields matching Mobile UI screen + Required Password):
   "businessName": "Sharma Art Jewellers",     // (Required) String - Business Name (or "business")
   "businessType": "Retailer",                 // (Optional) String - Dropdown (default: 'Retailer')
   "email": "pooja.sharma@example.com",        // (Required) String - Email Address (used for login)
-  "mobile": "9825123456",                     // (Required) String - Mobile Number (or "phone")
+  "mobile": "9825123456",                     // (Required) String - Exactly 10 digits only (or "phone")
   "city": "Ahmedabad",                        // (Optional) String - City (default: 'Ahmedabad')
   "password": "password123",                  // (Required) String - Min 6 chars (strictly required for login)
   "confirmPassword": "password123"            // (Optional) String - Must match password if provided
 }
 
-Note: The "password" field is STRICTLY REQUIRED on member registration. Without it, the API rejects the request with HTTP 400 ("Password is required and must be at least 6 characters"). Additional optional fields like "avatar", "address", "pincode", "dob" are also supported.
+Note: Both "password" (min 6 chars) and "mobile" (exactly 10 digits only) are STRICTLY REQUIRED on member registration. Without them, the API rejects the request with HTTP 400. Additional optional fields like "avatar", "address", "pincode", "dob" are also supported.
 
 Response (201 Created):
 {

@@ -23,7 +23,12 @@ const memberSchema = new mongoose.Schema(
     membershipId: { type: String },
     name: { type: String, required: true, trim: true },
     business: { type: String, required: true, trim: true },
-    mobile: { type: String, required: true },
+    mobile: {
+      type: String,
+      required: [true, 'Mobile number is required'],
+      trim: true,
+      match: [/^\d{10}$/, 'Mobile number must be a valid 10-digit number'],
+    },
     email: { type: String, required: true, lowercase: true, trim: true },
     password: { type: String, select: false },
     city: { type: String, default: 'Ahmedabad' },
@@ -90,6 +95,15 @@ const memberSchema = new mongoose.Schema(
           isMemberActive = true;
         }
 
+        let normalizedStatus = 'approved';
+        if (rawStatus === 'pending') {
+          normalizedStatus = 'pending';
+        } else if (rawStatus === 'rejected') {
+          normalizedStatus = 'rejected';
+        } else {
+          normalizedStatus = 'approved';
+        }
+
         const idCard = {
           cardNumber: ret.idCard?.cardNumber || cardNum,
           status: ret.idCard?.status || (isMemberActive ? 'active' : 'inactive'),
@@ -111,7 +125,7 @@ const memberSchema = new mongoose.Schema(
           joinedOn: formattedJoinedOn,
           avatar: ret.avatar || null,
           isActive: isMemberActive,
-          status: rawStatus,
+          status: normalizedStatus,
           rejectionReason: ret.rejectionReason || '',
           idCard,
           created_by: ret.created_by || 'user',
@@ -152,6 +166,15 @@ const memberSchema = new mongoose.Schema(
           isMemberActive = true;
         }
 
+        let normalizedStatus = 'approved';
+        if (rawStatus === 'pending') {
+          normalizedStatus = 'pending';
+        } else if (rawStatus === 'rejected') {
+          normalizedStatus = 'rejected';
+        } else {
+          normalizedStatus = 'approved';
+        }
+
         const idCard = {
           cardNumber: ret.idCard?.cardNumber || cardNum,
           status: ret.idCard?.status || (isMemberActive ? 'active' : 'inactive'),
@@ -173,7 +196,7 @@ const memberSchema = new mongoose.Schema(
           joinedOn: formattedJoinedOn,
           avatar: ret.avatar || null,
           isActive: isMemberActive,
-          status: rawStatus,
+          status: normalizedStatus,
           rejectionReason: ret.rejectionReason || '',
           idCard,
           created_by: ret.created_by || 'user',

@@ -24,6 +24,22 @@ export const normalizeIsActive = z.preprocess(
   z.boolean().optional()
 );
 
+export const normalize10DigitMobile = z.preprocess(
+  (val) => {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val === 'number') return String(val).trim();
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      return trimmed === '' ? undefined : trimmed;
+    }
+    return val;
+  },
+  z
+    .string()
+    .regex(/^\d{10}$/, 'Mobile number must be a valid 10-digit number')
+    .optional()
+);
+
 export const idCardValidationSchema = z
   .object({
     cardNumber: z.string().optional(),
@@ -40,8 +56,8 @@ export const createMemberSchema = z
     fullName: z.string().trim().min(2).optional(),
     business: z.string().trim().min(2, 'Business name is required').optional(),
     businessName: z.string().trim().min(2).optional(),
-    mobile: z.string().trim().min(8, 'Valid mobile number is required').optional(),
-    phone: z.string().trim().min(8).optional(),
+    mobile: normalize10DigitMobile,
+    phone: normalize10DigitMobile,
     email: z.string().trim().email('Valid email address is required'),
     password: z
       .string({ message: 'Password is required and must be at least 6 characters' })
@@ -73,8 +89,11 @@ export const createMemberSchema = z
     message: 'Business name is required',
     path: ['business'],
   })
-  .refine((data) => Boolean(data.mobile || data.phone), {
-    message: 'Valid mobile number is required',
+  .refine((data) => {
+    const m = (data.mobile || data.phone || '').toString().trim();
+    return Boolean(m && /^\d{10}$/.test(m));
+  }, {
+    message: 'Mobile number is required and must be a valid 10-digit number',
     path: ['mobile'],
   })
   .refine((data) => {
@@ -104,7 +123,8 @@ export const updateMemberSchema = z
   .object({
     name: z.string().trim().min(2).optional(),
     business: z.string().trim().min(2).optional(),
-    mobile: z.string().trim().min(8).optional(),
+    mobile: normalize10DigitMobile,
+    phone: normalize10DigitMobile,
     email: z.preprocess(
       (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
       z.string().trim().email().optional()
@@ -146,8 +166,8 @@ export const mobileRegisterMemberSchema = z
     business: z.string().trim().min(2).optional(),
     businessType: z.string().optional().default('Retailer'),
     email: z.string().trim().email('Valid email address is required'),
-    mobile: z.string().trim().min(8, 'Valid mobile number is required').optional(),
-    phone: z.string().trim().min(8).optional(),
+    mobile: normalize10DigitMobile,
+    phone: normalize10DigitMobile,
     city: z.string().optional().default('Ahmedabad'),
     password: z
       .string({ message: 'Password is required and must be at least 6 characters' })
@@ -174,8 +194,11 @@ export const mobileRegisterMemberSchema = z
     message: 'Business Name is required',
     path: ['businessName'],
   })
-  .refine((data) => Boolean(data.mobile || data.phone), {
-    message: 'Valid mobile number is required',
+  .refine((data) => {
+    const m = (data.mobile || data.phone || '').toString().trim();
+    return Boolean(m && /^\d{10}$/.test(m));
+  }, {
+    message: 'Mobile number is required and must be a valid 10-digit number',
     path: ['mobile'],
   })
   .refine((data) => {
@@ -198,8 +221,8 @@ export const memberLoginSchema = z
 export const memberForgotPasswordSchema = z
   .object({
     email: z.string().trim().optional(),
-    mobile: z.string().trim().optional(),
-    phone: z.string().trim().optional(),
+    mobile: normalize10DigitMobile,
+    phone: normalize10DigitMobile,
   })
   .passthrough()
   .refine((data) => Boolean(data.email || data.mobile || data.phone), {
@@ -248,8 +271,8 @@ export const updateMemberProfileSchema = z
     image: z.string().nullable().optional(),
     profilePhoto: z.string().nullable().optional(),
     created_by: z.enum(['admin', 'user']).optional(),
-    mobile: z.string().trim().min(8).optional(),
-    phone: z.string().trim().min(8).optional(),
+    mobile: normalize10DigitMobile,
+    phone: normalize10DigitMobile,
     email: z.preprocess(
       (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
       z.string().trim().email().optional()

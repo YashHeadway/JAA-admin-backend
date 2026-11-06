@@ -320,12 +320,27 @@ export class AuthService {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Member users (whether created by admin or user) are strictly forbidden from admin panel login
+    const { Member } = await import('../models/Member.js');
+    const memberDoc = await Member.findOne({ email: normalizedEmail });
+    if (memberDoc) {
+      throw ApiError.unauthorized('Invalid email or password');
+    }
+
     let admin = await AdminUser.findOne({ email: normalizedEmail });
     if (!admin) {
       admin = await User.findOne({ email: normalizedEmail });
     }
 
     if (!admin) {
+      throw ApiError.unauthorized('Invalid email or password');
+    }
+
+    // Role check: Only Admin or Super Admin are permitted to log into the admin panel
+    const roleLower = String(admin.role || '').trim().toLowerCase();
+    const isAdminRole = roleLower === 'admin' || roleLower === 'super admin';
+    if (!isAdminRole) {
       throw ApiError.unauthorized('Invalid email or password');
     }
 
