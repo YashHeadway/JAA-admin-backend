@@ -2678,60 +2678,36 @@ Response (200 OK):
 [11.1] Get Dashboard Overview & Metrics
 --------------------------------------------------
 Method:      GET
-Endpoint:    /api/dashboard/stats
-Auth:        None
+Endpoint:    /api/admin/dashboard (also /api/dashboard, /api/admin/dashboard/stats, /api/dashboard/stats)
+Auth:        Bearer Token or Cookie (Admin)
 
 Response (200 OK):
 {
-  "members": {
-    "all": 45,
-    "pending": 5,
-    "approved": 38,
-    "rejected": 2
-  },
-  "stats": {
-    "totalMembers": 45,
-    "pendingApprovals": 5,
-    "approvedMembers": 38,
-    "rejectedMembers": 2,
-    "totalEvents": 8,
-    "activeEvents": 4,
-    "totalLeads": 24,
-    "totalComplaints": 9,
-    "unresolvedComplaints": 4,
-    "totalGroups": 5,
-    "totalPosts": 14
-  },
-  "recent": {
-    "complaints": [
+  "success": true,
+  "data": {
+    "members": {
+      "totalMembers": 24,
+      "newMemberRequests": 4
+    },
+    "upcomingEvents": 3,
+    "newComplaints": 2,
+    "recentComplaints": [
       {
-        "id": 1,
-        "against": "Ramesh Bullion Co",
-        "type": "Payment Dispute",
-        "priority": "High",
-        "status": "In Progress",
-        "createdAt": "21-10-2026 05:32 pm",
-        "updatedAt": "21-10-2026 05:35 pm"
+        "complaintId": "CMP-2026-027",
+        "complaintBy": "Rajesh Mehta",
+        "complaintType": "no autorized"
       }
     ],
-    "events": [
+    "committeeMembers": [
       {
-        "id": 1,
-        "title": "Annual Gem & Jewellery Expo 2026",
-        "startDate": "2026-11-10",
-        "isActive": true,
-        "createdAt": "21-10-2026 05:18 pm",
-        "updatedAt": "21-10-2026 05:18 pm"
+        "positionName": "Chairman",
+        "totalCounts": 2
       }
     ],
-    "leads": [
+    "recentPosts": [
       {
-        "id": 1,
-        "name": "Kunal Parekh",
-        "businessName": "Parekh Gems",
-        "status": "Newest",
-        "createdAt": "21-10-2026 05:30 pm",
-        "updatedAt": "21-10-2026 05:30 pm"
+        "post": "AGM 2026 Official Notice",
+        "postedBy": "JAA Admin"
       }
     ]
   }

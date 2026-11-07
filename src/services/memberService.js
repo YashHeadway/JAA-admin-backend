@@ -24,7 +24,8 @@ export class MemberService {
       } else if (lower === 'pending') {
         filter.status = 'pending';
       } else if (lower === 'inactive') {
-        filter.$or = [{ status: 'inactive' }, { isActive: false }];
+        filter.status = { $in: ['approved', 'active', 'inactive'] };
+        filter.isActive = false;
       } else {
         filter.status = lower;
       }
@@ -33,6 +34,10 @@ export class MemberService {
     if (isActive !== undefined && isActive !== null && isActive !== '' && isActive !== 'all') {
       const activeBool = typeof isActive === 'boolean' ? isActive : (String(isActive).toLowerCase() === 'true' || String(isActive).toLowerCase() === 'active');
       filter.isActive = activeBool;
+      // Active and Inactive activity states strictly apply to approved members, never count or include rejected members
+      if (!filter.status) {
+        filter.status = { $in: ['approved', 'active', 'inactive'] };
+      }
     }
 
     if (search && search.trim()) {
