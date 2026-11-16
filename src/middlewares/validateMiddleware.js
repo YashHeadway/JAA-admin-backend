@@ -21,7 +21,22 @@ export const validate = (schema, source = 'body') => {
 
 
       // Replace with sanitized/validated data
-      req[source] = parsed.data;
+      try {
+        req[source] = parsed.data;
+      } catch {
+        try {
+          Object.defineProperty(req, source, {
+            value: parsed.data,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          });
+        } catch {
+          if (req[source] && typeof req[source] === 'object') {
+            Object.assign(req[source], parsed.data);
+          }
+        }
+      }
       next();
     } catch (err) {
       next(err);

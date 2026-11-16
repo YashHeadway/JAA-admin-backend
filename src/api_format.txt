@@ -106,6 +106,30 @@ Response (200 OK):
   }
 }
 
+[1.3] Redis Connection & Cache Diagnostics Test
+--------------------------------------------------
+Method:      GET
+Endpoint:    /api/redis-test
+Alias:       /redis-test
+             /api/cache-test
+Auth:        None (Public)
+Description: Tests Redis connectivity (Upstash REST / TCP / Memory Fallback), executes a test write-read-delete cycle, and returns diagnostic metrics.
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Connected to Upstash Redis (REST)",
+  "data": {
+    "connected": true,
+    "provider": "upstash",
+    "latency": "22ms",
+    "totalCachedKeys": 0,
+    "isFallback": false,
+    "message": "Connected to Upstash Redis (REST)",
+    "testWriteRead": "SUCCESS"
+  }
+}
+
 
 ====================================================================================================
 2. AUTHENTICATION & SESSION APIS
@@ -2810,6 +2834,287 @@ HTTP Status: 422 Unprocessable Entity
       "message": "Valid email address is required"
     }
   ]
+}
+
+====================================================================================================
+SECTION 14: FIREBASE CONNECTION & REALTIME CHAT MODULE
+====================================================================================================
+
+[14.1] Test Firebase Connection
+--------------------------------------------------
+Method: GET
+URL: {{base_url}}/api/firebase-test
+Alias: {{base_url}}/firebase-test
+Auth: Public (No token required)
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Firebase connected successfully!"
+}
+
+[14.2] Get User Conversations List (With Filter & Pagination Support)
+--------------------------------------------------
+Method: GET
+URL: {{base_url}}/api/chat/conversations
+Alias: {{base_url}}/api/admin/chat
+       {{base_url}}/api/admin/chat/conversations
+Sort Order: DESCENDING by recent activity / lastMessage (Conversations with newest messages show FIRST)
+Query Parameters (Optional Filters & Pagination):
+  - page: 1                  (Current page number, default 1)
+  - limit: 15                (Items per page, default 15)
+  - item_per_page: 15        (Alias for limit)
+  - id: 1                    (Filter by sequential chat ID)
+  - memberId: 43             (Filter by member ID)
+  - search: Yash             (Search member name, email, or message text)
+Auth: Bearer Token required (User or Admin)
+
+Response (200 OK):
+{
+  "success": true,
+  "pagination": {
+    "total_items": 3,
+    "total_page": 1,
+    "current_page": 1,
+    "item_per_page": 15,
+    "has_more": false
+  },
+  "data": [
+    {
+      "id": 1,
+      "type": "direct",
+      "participantDetails": {
+        "12": {
+          "id": "12",
+          "name": "Yash Soni",
+          "email": "yashranpura3@gmail.com",
+          "role": "admin",
+          "avatar": "/uploads/yash-image-1793436873733.jpeg"
+        },
+        "member": {
+          "memberId": "43",
+          "name": "Yash Ranpura",
+          "email": "yashranpura3@gmail.com",
+          "role": "member",
+          "avatar": "/uploads/yash-passportsize-1793775598420.jpeg"
+        }
+      },
+      "lastMessage": {
+        "id": "msg_1794820456187_tmwyw",
+        "conversationId": 1,
+        "text": "You are welcome Yash!",
+        "senderId": "12",
+        "senderName": "Yash Soni",
+        "senderRole": "admin",
+        "messageType": "text",
+        "createdAt": "16-11-2026 02:44 pm",
+        "admin": {
+          "id": "12",
+          "name": "Yash Soni",
+          "email": "yashranpura3@gmail.com",
+          "role": "admin",
+          "avatar": "/uploads/yash-image-1793436873733.jpeg"
+        }
+        // NOTE: If member sent the last message, this field will be "member": { memberId, name, email, role, avatar }
+      },
+      "unreadCounts": {
+        "12": 0,
+        "43": 0
+      },
+      "createdAt": "16-11-2026 11:20 am",
+      "updatedAt": "16-11-2026 11:20 am"
+    }
+  ]
+}
+
+[14.3] Get Conversation By ID (Single Chat Details with Messages)
+--------------------------------------------------
+Method: GET
+URL: {{base_url}}/api/admin/chat/:id
+Alias: {{base_url}}/api/chat/:id
+       {{base_url}}/api/admin/chat/conversations/:id
+       {{base_url}}/api/chat/conversations/:id
+Example: {{base_url}}/api/admin/chat/1
+Sort Order: Messages array is sorted DESCENDING (newest/latest message appears FIRST at index 0)
+Auth: Bearer Token required (User or Admin)
+
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "type": "direct",
+    "participantDetails": {
+      "12": {
+        "id": "12",
+        "name": "Yash Soni",
+        "email": "yashranpura3@gmail.com",
+        "role": "admin",
+        "avatar": "/uploads/yash-image-1793436873733.jpeg"
+      },
+      "member": {
+        "memberId": "43",
+        "name": "Yash Ranpura",
+        "email": "yashranpura3@gmail.com",
+        "role": "member",
+        "avatar": "/uploads/yash-passportsize-1793775598420.jpeg"
+      }
+    },
+    "lastMessage": {
+      "id": "msg_direct_12_43_4",
+      "text": "Your digital ID card is already active in your portal. The physical card will be dispatched this week.",
+      "senderId": "12",
+      "senderName": "Yash Soni",
+      "senderRole": "admin",
+      "member": {
+        "memberId": "43",
+        "name": "Yash Ranpura",
+        "email": "yashranpura3@gmail.com",
+        "role": "member",
+        "avatar": "/uploads/yash-passportsize-1793775598420.jpeg"
+      },
+      "messageType": "text",
+      "createdAt": "16-11-2026 11:20 am"
+    },
+    "unreadCounts": {
+      "12": 0,
+      "43": 0
+    },
+    "messages": [
+      {
+        "id": "msg_direct_12_43_1",
+        "conversationId": 1,
+        "senderId": "43",
+        "senderName": "Yash Ranpura",
+        "senderRole": "member",
+        "receiverId": "12",
+        "member": {
+          "memberId": "43",
+          "name": "Yash Ranpura",
+          "email": "yashranpura3@gmail.com",
+          "role": "member",
+          "avatar": "/uploads/yash-passportsize-1793775598420.jpeg"
+        },
+        "text": "Hello Admin, I have submitted my membership renewal documents. Please verify.",
+        "mediaUrl": null,
+        "messageType": "text",
+        "isRead": true,
+        "createdAt": "16-11-2026 11:20 am"
+      }
+    ],
+    "createdAt": "16-11-2026 11:20 am",
+    "updatedAt": "16-11-2026 11:20 am"
+  }
+}
+
+[14.4] Start or Get Conversation
+--------------------------------------------------
+Method: POST
+URL: {{base_url}}/api/chat/conversations
+Alias: {{base_url}}/api/admin/chat/conversations
+Auth: Bearer Token required
+Headers: Content-Type: application/json
+Payload:
+{
+  "receiverId": "45",
+  "receiverName": "Rajesh Mehta",
+  "receiverAvatar": "/uploads/member-45.png",
+  "initialMessage": "Hello Rajesh"
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Conversation ready",
+  "data": { ... }
+}
+
+[14.5] Send Message
+--------------------------------------------------
+Method: POST
+URL: {{base_url}}/api/chat/messages
+Alias: {{base_url}}/api/admin/chat/messages
+Auth: Bearer Token required
+Headers: Content-Type: application/json or multipart/form-data
+Payload (JSON or Form-Data):
+{
+  "conversationId": 1,
+  "receiverId": "43",
+  "text": "Meeting scheduled tomorrow",               // Optional if media file is attached
+  "media": "file upload or string URL or array",     // Supports single file, multiple files, array of objects, or URL string
+  "mediaUrl": "/uploads/document.pdf",               // Optional direct URL
+  "messageType": "text"                              // Optional: auto-detected as 'image', 'video', 'audio', or 'file' if media provided
+}
+
+Response (201 Created):
+{
+  "success": true,
+  "message": "Message sent successfully",
+  "data": {
+    "id": "msg_...",
+    "conversationId": 1,
+    "senderId": "12",
+    "senderName": "Admin",
+    "senderRole": "admin",
+    "text": "Meeting scheduled tomorrow",
+    "mediaUrl": "/uploads/document.pdf",
+    "messageType": "file",
+    "isRead": false,
+    "createdAt": "16-11-2026 04:30 pm"
+  }
+}
+
+[14.6] Get Messages History
+--------------------------------------------------
+Method: GET
+URL: {{base_url}}/api/chat/conversations/:conversationId/messages?limit=50
+Alias: {{base_url}}/api/admin/chat/:id/messages
+       {{base_url}}/api/admin/chat/conversations/:conversationId/messages
+Auth: Bearer Token required
+
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    {
+      "id": "msg_direct_12_43_1",
+      "conversationId": 1,
+      "senderId": "43",
+      "senderName": "Yash Ranpura",
+      "senderAvatar": null,
+      "senderRole": "member",
+      "receiverId": "12",
+      "member": {
+        "memberId": "43",
+        "name": "Yash Ranpura",
+        "email": "yashranpura3@gmail.com",
+        "role": "member",
+        "avatar": "/uploads/yash-passportsize-1793775598420.jpeg"
+      },
+      "text": "Hello Admin, I have submitted my membership renewal documents. Please verify.",
+      "mediaUrl": null,
+      "messageType": "text",
+      "isRead": true,
+      "createdAt": "16-11-2026 11:20 am"
+    }
+  ],
+  "total": 1
+}
+
+[14.7] Mark Conversation Messages As Read
+--------------------------------------------------
+Method: PATCH / POST
+URL: {{base_url}}/api/chat/conversations/:conversationId/read
+Alias: {{base_url}}/api/admin/chat/:id/read
+       {{base_url}}/api/chat/:id/read
+       {{base_url}}/api/admin/chat/conversations/:conversationId/read
+       {{base_url}}/api/admin/chat/read/:conversationId
+Auth: Bearer Token required
+
+Response (200 OK):
+{
+  "success": true,
+  "message": "Messages marked as read"
 }
 
 ====================================================================================================

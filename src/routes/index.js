@@ -13,6 +13,7 @@ import uploadRoutes from './uploadRoutes.js';
 import messageRoutes from './messageRoutes.js';
 import adminProfileRoutes from './adminProfileRoutes.js';
 import adminRoutes from './admin.routes.js';
+import chatRoutes from './chatRoutes.js';
 import { authenticate, protectAdmin } from '../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -45,6 +46,11 @@ const isPublicRoute = (req) => {
     return true;
   }
 
+  // Chat endpoints (handled by chatRoutes with flexible auth / default admin)
+  if (cleanPath.includes('/chat') || cleanUrl.includes('/chat')) {
+    return true;
+  }
+
   // Public authentication & password recovery endpoints
   const publicKeywords = [
     'login',
@@ -70,6 +76,9 @@ const isPublicRoute = (req) => {
     'logout',
     'adminlogout',
     'admin-logout',
+    'firebase-test',
+    'redis-test',
+    'cache-test',
   ];
 
   return publicKeywords.some((keyword) => {
@@ -141,6 +150,7 @@ router.use(['/admin/complaints', '/admin/admin/complaints'], complaintRoutes);
 router.use(['/admin/posts', '/admin/admin/posts'], postRoutes);
 router.use(['/admin/dashboard', '/admin/admin/dashboard'], dashboardRoutes);
 router.use(['/admin/upload', '/admin/admin/upload'], uploadRoutes);
+router.use(['/admin/chat', '/admin/admin/chat', '/admin/chats'], chatRoutes);
 router.use(['/admin/admin-profile', '/admin/admin/admin-profile'], adminProfileRoutes);
 router.use(['/admin/profile', '/admin/admin/profile'], adminProfileRoutes);
 router.use(['/admin/update-profile', '/admin/admin/update-profile'], adminProfileRoutes);
@@ -168,6 +178,7 @@ router.use('/complaints', complaintRoutes);
 router.use('/posts', postRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/upload', uploadRoutes);
+router.use(['/chat', '/chats'], chatRoutes);
 
 // Root API discovery endpoint (accessible at /api, /api/admin, and /api/admin/)
 router.get(['/', '/admin', '/admin/'], (req, res) => {
@@ -183,6 +194,7 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
         groups: '/admin/groups',
         broadcasts: '/admin/broadcasts',
         messages: '/admin/messages',
+        chat: '/admin/chat',
         leads: '/admin/leads',
         complaints: '/admin/complaints',
         posts: '/admin/posts',
@@ -205,6 +217,7 @@ router.get(['/', '/admin', '/admin/'], (req, res) => {
         groups: '/groups',
         broadcasts: '/broadcasts',
         messages: '/messages',
+        chat: '/chat',
         leads: '/leads',
         complaints: '/complaints',
         posts: '/posts',

@@ -11,6 +11,8 @@ import { fileURLToPath } from 'url';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { getDbStatus } from './config/db.js';
+import { db } from './config/firebase.js';
+import { redis } from './config/redis.js';
 import { globalRateLimiter } from './middlewares/rateLimiter.js';
 import { notFoundHandler } from './middlewares/notFoundMiddleware.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
@@ -218,6 +220,49 @@ app.get('/health', (req, res) => {
     database: getDbStatus(),
     environment: env.NODE_ENV,
   });
+});
+
+// Firebase connection test endpoint
+app.get(['/api/firebase-test', '/firebase-test'], async (req, res) => {
+  try {
+    await db.collection('_connection_test').limit(1).get();
+
+    res.status(200).json({
+      success: true,
+      message: 'Firebase connected successfully!',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Redis connection test endpoint
+app.get(['/api/redis-test', '/redis-test', '/api/cache-test', '/cache-test'], async (req, res) => {
+  try {
+    const testKey = 'test:connection_check';
+    const testValue = { status: 'ok', testedAt: new Date().toISOString() };
+    await redis.set(testKey, testValue, { ex: 30 });
+    const readValue = await redis.get(testKey);
+    await redis.del(testKey);
+    const status = await redis.getStatus();
+
+    res.status(200).json({
+      success: true,
+      message: status.message,
+      data: {
+        ...status,
+        testWriteRead: readValue?.status === 'ok' ? 'SUCCESS' : 'FAILED',
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: `Redis connection test failed: ${error.message}`,
+    });
+  }
 });
 
 // Mount API v1 routes

@@ -11,6 +11,7 @@ import { Lead } from '../models/Lead.js';
 import { Complaint } from '../models/Complaint.js';
 import { Post } from '../models/Post.js';
 import { Counter } from '../models/Counter.js';
+import { Chat } from '../models/Chat.js';
 
 import { formatDateTime } from '../utils/dateFormatter.js';
 
@@ -59,6 +60,7 @@ const ensureCollectionsAndAdmin = async () => {
       Complaint,
       Post,
       Counter,
+      Chat,
     ];
 
     for (const model of models) {

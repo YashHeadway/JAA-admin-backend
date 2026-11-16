@@ -40,4 +40,10 @@ export const env = {
   SMTP_PASS: process.env.SMTP_PASS || process.env.EMAIL_PASS || '',
   SMTP_FROM: process.env.SMTP_FROM || process.env.EMAIL_FROM || '',
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+
+  // Redis / Upstash Cache settings
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_REST_URL || '',
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_REST_TOKEN || '',
+  REDIS_URL: process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL || '',
+  REDIS_CACHE_ENABLED: process.env.REDIS_CACHE_ENABLED !== 'false',
 };
